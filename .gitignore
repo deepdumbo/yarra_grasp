@@ -1,0 +1,39 @@
+#Matlab
+*.mat
+
+#Data
+*.mat
+*.dcm
+*.ima
+/twixdata/
+/yarraout/
+
+#MeVisLab
+*.mlab.auto
+*.mlab.cache
+
+#OSX
+*.DS_Store
+.pydevproject
+
+#3rd-party stuff
+
+
+#Auto-generated
+
+
+#For in-source builds
+*.dylib
+*.so
+*.dll
+*.pdb
+CMakeFiles
+Makefile
+
+
+#For insource builds
+*.cbp
+*.cxx
+
+#Autotest results
+
