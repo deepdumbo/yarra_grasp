@@ -633,14 +633,17 @@ function [mdh_blob, filePos, isEOF] = loop_mdh_read( fid, version, Nscans, scan,
         end
     % ======================================
 
+    useJava = usejava('jvm'); % MCM added to allow operation under '-nojvm' startup option (e.g. within Yarra)
     isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
-    if isOctave % octave does not support a cancel button
+    if isOctave && useJava % octave does not support a cancel button % MCM added useJava
         h = waitbar(0,'','Name', sprintf('Reading Scan ID %d/%d', scan, Nscans));
     else
-        h = waitbar(0,'','Name', sprintf('Reading Scan ID %d/%d', scan, Nscans),...
+        if useJava % MCM added
+            h = waitbar(0,'','Name', sprintf('Reading Scan ID %d/%d', scan, Nscans),...
                 'CreateCancelBtn',...
                 'setappdata(gcbf,''canceling'',1)');
-        setappdata(h,'canceling',0)
+            setappdata(h,'canceling',0)
+        end % useJava
     end
 
     t0 = tic;
@@ -666,9 +669,12 @@ function [mdh_blob, filePos, isEOF] = loop_mdh_read( fid, version, Nscans, scan,
             isEOF = true;
             break
         end
-
-        if ~isOctave && getappdata(h,'canceling') 
-            break;
+        
+        %         if ~isOctave && getappdata(h,'canceling') 
+        if ~isOctave && useJava % MCM changed to useJava
+            if getappdata(h,'canceling') % MCM added extra if-statement
+                break;
+            end
         end
         
         bitMask = data_u8(evIdx);   % the initial 8 bit from evalInfoMask are enough
@@ -723,12 +729,16 @@ function [mdh_blob, filePos, isEOF] = loop_mdh_read( fid, version, Nscans, scan,
             elapsed_time  = toc(t0);
             time_left     = elapsed_time * (1/progress-1);
             progress_str  = sprintf('%3.0f %% read in %4.0f s;\nestimated time left: %4.0f s', round(100*progress), elapsed_time, time_left);
-            waitbar(progress, h, progress_str);
+            if useJava % MCM added to allow operation under '-nojvm' startup option (e.g. within Yarra)
+                waitbar(progress, h, progress_str);
+            end
         end
 
         cPos = cPos + ulDMALength;
     end % while true
-    delete(h);
+    if useJava % MCM added useJava
+        delete(h);
+    end
     
     if isEOF
         n_acq = n_acq-1;    % ignore the last attempt
