@@ -1,5 +1,8 @@
 #Matlab
+*.asv
+*.m~
 *.mat
+
 
 #Data
 *.mat
