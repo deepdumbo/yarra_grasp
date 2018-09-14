@@ -29,6 +29,7 @@ addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/systems'));                     
 addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
 addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
 addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
 addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
 addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
 % addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
@@ -85,41 +86,10 @@ end
 
 
 %% Motion detection
-% Adapted from Demo2_MotionDetection.m (NYU Demo provided by Li Feng)
 if pars.doMotionDet
     disp('Performing motion detection...');
-    if pars.nSpokesMotionDet == 0
-        pars.nSpokesMotionDet = length(pars.spokes);
-    end						
-    [nx nc ntviews nkz]=size(rawdata);
     
-    ZIP = squeeze(rawdata(nx/2+2,:,:,:));
-    
-    % Respiratory motion detection
-    ZIP=permute(ZIP,[3,2,1]);                                   % MCM changed from [2,1,3]
-    ZIP=abs(fftshift(ifft(ZIP,400,1),1)); % FFT and interpolation along the kz dimension
-    
-    %Normalization of each projection in each coil element
-    ZIP=ProjNorm(ZIP);%Normalization includes temporal smoothing
-    
-    %There are 3 steps to generate a respiratory motion signal, as shown below    
-    % STEP 1: find the coil elements with good representation of respiratory motion
-    %         from the late enhancement spokes
-    [Coil,Res_Signal_Post]=MC_Step1(ZIP,pars.nSpokesMotionDet);
-    
-    %STEP 2: Estimate motion signal using PCA from the concatated coil elements
-    %Those coil elements were selected in the first step
-    [SI,corrm,Res_Signal,ZIP1]=MC_Step2(ZIP,Coil,pars.nSpokesMotionDet,Res_Signal_Post);
-    
-    %Step 3: You noticed that the signal is not flat, due to the contrast
-    %injection. So, now let's estimate the envelop of the signal and substract it
-%     Res_Signal=MC_Step3(Res_Signal,ZIP1);
-    
-    %save the estimated motion signal
-%     save Res_Signal.mat Res_Signal
-    
-    % Free up some space
-    clear ZIP ZIP1 
+    Res_Signal = motionDetGrasp(rawdata, doContrastCorr, pars.doFigures);
     
     disp('...done.');
 end
