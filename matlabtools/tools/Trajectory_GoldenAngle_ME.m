@@ -105,7 +105,7 @@ defGradcorr         = 1;
 % fill parser object
 addRequired(p,'ntviews',@isnumeric);
 addRequired(p,'nx',@isnumeric);
-addOptional(p,'ne',@isnumeric);
+addOptional(p,'ne',defNe,@isnumeric);
 addOptional(p,'blipAngleDeg',defBlipAngleDeg,@isnumeric);
 addParameter(p,'normalize',defNormalize,@isnumeric);
 addParameter(p,'flip',defFlip);
