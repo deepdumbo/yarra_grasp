@@ -18,7 +18,7 @@ end
 
 
 %% Set initial parameters
-bp 		= '../../../';															% base path for all image recon tools
+bp 		= '../../';															% base path for all image recon tools
 
 % ## Include packages in subfolders
 addpath(fullfile(bp,'matlabtools/toolboxes/MIRT'));
@@ -30,8 +30,8 @@ addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         
 addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
 addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
 addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
-addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
-addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
+% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
+% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
 % addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
 addpath(fullfile(bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
 addpath(fullfile(bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
@@ -88,7 +88,7 @@ end
 %% Motion detection
 if pars.doMotionDet
     disp('Performing motion detection...');
-    
+    doContrastCorr = 0;
     Res_Signal = motionDetGrasp(rawdata, doContrastCorr, pars.doFigures);
     
     disp('...done.');
