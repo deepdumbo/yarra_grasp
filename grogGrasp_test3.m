@@ -3,20 +3,25 @@
 clear
 clc
 
+%% Set initial parameters
+bp 		= './';															% base path for all image recon tools
+
 % ## Include packages in subfolders
-addpath('../mapVBVD/');                                             % for reading TWIX files
-addpath('../MIRT/irt/mri');                                         % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('../MIRT/irt/utilities');                                   % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('../NYU Demos/IterativeRadial_v2/');                        % for the NUFFT
-addpath('../NYU Demos/IterativeRadial_v2/nufft');                   % for the NUFFT
-addpath('../NYU Demos/IterativeRadial_v2/utilities');               % for the NUFFT
-addpath('../NYU Demos/IterativeRadial_v2/graph');                   % for the NUFFT
-addpath('../NYU Demos/IterativeRadial_v2/imagescn_R2008a/');        % for plotting images
-addpath('../NYU Demos/XDGRASP_Demo/Code');
-addpath('../NYU Demos/XDGRASP_Demo/Code/nufft_files');
-addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/utils');          % for GROG-specific tools
-addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');    % for GROG-specific tools
-% addpath('../NYU Demos/IterativeRadial_v2/poblano_toolbox_1.1');  % for numerical optimization
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT'));
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
+% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
+% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
+% addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
+addpath(fullfile(bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
+addpath(fullfile(bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
+
 
 % Set parameters:
 % ...for global settings & flags
@@ -27,12 +32,14 @@ slices                  = 0;            % Select which slice(s) to reconstruct. 
 % ...for selecting which parts of the code to run
 doLoadData              = 1;            % Load data
 doPartialFourier        = 1;            % Perform partial fourier filling of missing k-space data
+doSliceInterp           = 1;            % Perform slice interpolation
 doMotionDet             = 1;            % Perform motion detection
 doFtz                   = 1;            % Perform FT in z-direction
+doSliceOversampling     = 1;            % Remove slices from 'slice oversampled' region
 doUnstreaking           = 0;            % Perform coil unstreaking
 doCoilCompression       = 1;            % Perform coil compression
-doGridding              = 0;            % Perform gridding reconstruction
-doGriddingXdGrasp       = 1;            % Perform respiratory motion-resolved griddig reconstruction
+doGridding              = 1;            % Perform gridding reconstruction
+doGriddingXdGrasp       = 0;            % Perform respiratory motion-resolved griddig reconstruction
 doXdGrasp               = 0;            % Perform respiratory motion-resolved iterative recon using XD-GRASP
 doGrogXdGrasp           = 0;            % Perform respiratory motion-resolved iterative recon using GROG
 doCropImg               = 1;            % Crop images to FOV requested by MR operator
@@ -42,7 +49,7 @@ doDicomWrite            = 0;            % Write result as dicom files
 loadTwixFile            = true;         % Read file meta data from pre-saved file 'twixData.mat'?
 saveTwixFile            = false;        % Save a file twixData.mat after reading in raw data
 channels                = 0;            % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
-spokes                  = 1:300;        % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
+spokes                  = 1:110;        % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
 kzlines                 = 0;            % Select which kz line(s) to read from the data. 0 = all.
 removeOS                = false;        % Remove readout oversampling to reduce memory load
 
@@ -54,7 +61,8 @@ n1=100;                                 % Number of spokes to generate artifact 
 n2=40;                                  % Number of spokes to generate images with streaking artifacts
 
 % ...for motion detection
-nSpokesMotionDet = spokes;         % Number of spokes used for motion detection
+nSpokesMotionDet        = spokes;         % Number of spokes used for motion detection
+doContrastCorr          = 0;            % Correct respiratory signal for contrast agent inflow
 
 % ...for coil compression
 ncc=8;                                  % Select to how many coil channels the data should be compressed
@@ -94,7 +102,7 @@ if doLoadData
     
     % ## Read metadata from the Siemens TWIX file
     if loadTwixFile
-        load twixDataMinat22_short.mat                               % Header info already read in to speed things up
+        load('./twixdata/twixDataMinat22_short.mat');                               % Header info already read in to speed things up
     else
         twix=mapVBVD(fileName);
         
@@ -132,36 +140,21 @@ end
 %% Partial Fourier
 if doPartialFourier
     disp('Doing Partial Fourier...');
-    % Get size of raw data
-    [nx, nc, ntviews, npar] = size(rawdata);
     
-    % Get full number of k-space lines in partition direction
-    nparFull = twix.hdr.Config.NPaftLen;
+    % Multi-echo partial fourier processing in 2D
+    nparPF = twix.hdr.Meas.Partitions;
+    rawdata = pfGoldenAngle(rawdata, nparPF);
     
-    if npar ~= nparFull
-        % Fill missing k-space lines using POCS algorithm:
-        % Permute raw data to [nx, npar, ntviews, nc]
-        rawdata = permute(rawdata, [1 4 3 2]);
-        % Reshape raw data to [nx, npar, ntvies*nc]
-        rawdata = reshape(rawdata, [nx npar ntviews*nc]);
-        % Loop over all nx-npar 'blades' and perform partial Fourier filling
-        kRec = single(zeros(nx, nparFull, ntviews*nc));
-        for i=1:ntviews*nc
-            [~, kRec(:,:,i)] = ir_mri_partial_fourier_3d(rawdata(:,:,i), [nx nparFull], 'pf_location', [0 0 0], 'niter', 5);
-        end
-        % Reshape back to [nx, npar, ntviews, nc]
-        kRec = reshape(kRec, [nx nparFull ntviews nc]);
-        % Permute back to original [nx, nc, ntviews, npar]
-        kRec = permute(kRec, [1 4 3 2]);
-        
-    end
-    
-    rawdata = kRec;
-    clear kRec
-    
-    % Find partitions to actually reconstruct (ignoring slice oversampled ones)
-    startPartition = twix.hdr.Config.LoopStartPar;
-    nPartitions = twix.hdr.Config.LoopLengthPar;
+    disp('...done.');
+end
+
+%% Slice interpolation / zero filling
+% Zero filling of k-space in partition direction to accommodate slice
+% resolution <100% (ie interpolation)
+if doSliceInterp
+    disp('Doing Slice interpolation...');
+    nparSliceInterp = twix.hdr.Meas.NPaftLen;    % Number of partitions for Fourier Transform
+    rawdata = zeroPadPar_Filt(rawdata,nparSliceInterp);
     
     disp('...done.');
 end
@@ -171,45 +164,8 @@ end
 % Adapted from Demo2_MotionDetection.m (NYU Demo provided by Li Feng)
 if doMotionDet
     disp('Performing motion detection...');
-    
-%     if nSpokesMotionDet == 0
-        nSpokesMotionDet = length(spokes);
-%         nSpokesMotionDet = twix.image.NLin;
-%     end
-    
-    [nx nc ntviews nz]=size(rawdata);
-    
-    % then, you can get your ZIP with
-    ZIP = squeeze(rawdata(nx/2+2,:,:,:));
-    
-    % Respiratory motion detection
-    ZIP=permute(ZIP,[3,2,1]);                                   % MCM changed from [2,1,3]
-    ZIP=abs(fftshift(ifft(ZIP,400,1),1)); % FFT and interpolation along the kz dimension
-    
-    %Normalization of each projection in each coil element
-    ZIP=ProjNorm(ZIP);%Normalization includes temporal smoothing
-    if doFigures
-        figure,imagesc(abs(ZIP(:,:,15))),axis image, axis off, colormap(gray),title('Respiratory Motion')
-    end
-    
-    %There are 3 steps to generate a respiratory motion signal, as shown below    
-    % STEP 1: find the coil elements with good representation of respiratory motion
-    %         from the late enhancement spokes
-    [Coil,Res_Signal_Post]=MC_Step1(ZIP,nSpokesMotionDet);
-    
-    %STEP 2: Estimate motion signal using PCA from the concatated coil elements
-    %Those coil elements were selected in the first step
-    [SI,corrm,Res_Signal,ZIP1]=MC_Step2(ZIP,Coil,nSpokesMotionDet,Res_Signal_Post);
-    
-    %Step 3: You noticed that the signal is not flat, due to the contrast
-    %injection. So, now let's estimate the envelop of the signal and substract it
-%     Res_Signal=MC_Step3(Res_Signal,ZIP1);
-    
-    %save the estimated motion signal
-    save Res_Signal.mat Res_Signal
-    
-    % Free up some space
-    clear ZIP ZIP1 
+   
+    Res_Signal = motionDetGrasp(rawdata, doContrastCorr, doFigures);
     
     disp('...done.');
 end
@@ -235,13 +191,34 @@ if doFtz
     if slices ~= 0
         kdata = kdata(:,:,:,slices);
     else
-        slices = 1:nparFull;
+        slices = 1:size(kdata,4);
     end
     
     kdata = gather(kdata);
     
     % Free up some memory
     clear rawdata
+    
+    disp('...done.');
+end
+
+
+%% Slice oversampling
+% Remove slices that were inside the slice-oversampled region
+if doSliceOversampling
+    disp('Performing Slice oversampling...');
+    
+    if slices ~=0
+        % Slices already removed, do nothing
+        slices = 1:size(kdata,4);
+    else
+        % Find partitions to actually reconstruct (ignoring slice oversampled ones)
+        startPartition = twix.hdr.Config.LoopStartPar;
+        nparImg = twix.hdr.Config.LoopLengthPar;
+        slices = startPartition:startPartition+nparImg-1;
+        kdata = kdata(:,:,:,slices);
+        slices = 1:nparImg;
+    end
     
     disp('...done.');
 end
@@ -324,40 +301,9 @@ end
 % Adapted from Demo1_Unstreaking.m (NYU Demo provided by Li Feng)
 
 if doCoilCompression
-    disp('Performing Coil Compression...');
-%     Hoe dit werkt:
-% - Beschrijf elk datapunt als een vector in coil-ruimte (elke coil
-% vertegenwoordigt een as in deze ruimte)
-% - Schrijf de data daartoe om naar een Nd (datapunten) x Nc (coils)
-% matrix, die de datapunten dus als rijvectoren bevat.
-% - Bereken de SVD van deze ruimte.
-% - De hieruit volgende matrix V bevat de z.g. 'right singular vectors',
-% waarvan de kolommen de eenheidsvectoren bevatten van een nieuwe basis
-% voor de datavectoren. Deze basisvectoren zijn lineaire combinaties van de
-% oorspronkelijke eenheidsvectoren, die zo zijn gekozen dat de variatie in
-% de data langs de betreffende as steeds zo groot mogelijk is, afgezien van
-% die langs eerdere assen. (Dus variatie langs as 1 is grootst, langs as 2
-% kleiner, etc, maar altijd maximum bereikbare van de overgebleven
-% dimensies). In dit geval kunnen deze basisvectoren worden gezien als
-% 'gecombineerde spoelelementen'.
-% Het product van een data- (=rij-)vector met een kolom van V geeft de
-% coordinaat van die vector langs de betreffende V-as. Product van de
-% rijvector met matrix V geeft dus dezelfde vector uitgedrukt in de basis
-% V, en product D*V geeft alle datavectoren uitgedrukt in de basis V.
-% - Waar V de nieuwe basisvectoren bevat op volgorde van data-variatie,
-% bevat het SVD-resultaat S de grootte van die variaties. Latere elementen
-% van S bevatten lagere waarden, die dus tot uitdrukking brengen dat de
-% data langs de bijbehorende V-vector weinig variatie (=informatie) bevat.
-% Dit betekent weer dat weglaten van die componenten weinig gevolgen heeft
-% voor de daadwerkelijke inhoud van de data
-% - Bekijk dus de 'singular values' (uit S), en besluit welke wel en niet
-% zullen worden meegenomen
-% - Vermenigvuldig D met de kolommen van V die de meeste informatie
-% bevatten: data is gecomprimeerd tot een aantal 'gecombineerde
-% spoelelementen', dat dus lager is dan het totaal.
+    disp('Performing Coil Compression...');   
     
-    
-    [kdata_out, S, err] = coilCompress(kdata, ncc, doErr);
+    [kdata, S] = coilCompress(kdata, ncc, doErr);
     disp('...done.');
 end
 
@@ -368,7 +314,7 @@ if doGridding
     out_gridding = reconGriddingGrasp(kdata);
     
     if doFigures
-        figure('Name', 'Gridding Solution'), imagescn(imresize(abs(gridding),   [size(gridding,1)*4 size(gridding,2)*4],      'bilinear'),[],[],[],3);
+        figure('Name', 'Gridding Solution'), imagescn(imresize(abs(out_gridding),   [size(out_gridding,1)*4 size(out_gridding,2)*4],      'bilinear'),[],[],[],3);
     end
     disp('...done.');
 end
