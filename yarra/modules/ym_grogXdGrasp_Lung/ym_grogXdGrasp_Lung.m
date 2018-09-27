@@ -97,7 +97,6 @@ end
 %% Fourier transform in Z-direction
 % So that each 'star' can be reconstructed separately
 % This can be done for each coil separately to save memory
-% How to treat 'partial fourier' in that direction?
 if pars.doFtz
     disp('Performing Fourier Transform in z-direction...');
     [nx, nc, ntviews, nkz] = size(rawdata);
@@ -106,10 +105,7 @@ if pars.doFtz
 %     else
         kdata = single(zeros(size(rawdata)));
 %     end
-    for c = 1:nc
-        % Fill up the missing partial Fourier data?
-        % See post: https://www.researchgate.net/post/Whats_wrong_with_my_MATLAB_implementation_of_Partial_Fourier_construction_based_on_conjugate_symmetry
-        
+    for c = 1:nc        
         % Inverse Fourier transform along z
         kdata(:,c,:,:) = fftshift(ifft(ifftshift(rawdata(:,c,:,:),4),[],4),4);          % Unsure whether order of fftshift and ifftshift is correct here (or whether that matters)
     end
