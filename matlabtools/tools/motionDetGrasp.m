@@ -25,8 +25,8 @@ if nargin<2
     doContrastCorr = 0;
 end
 
-nSpokesMotionDet = length(spokes);          %MCM TODO: determine this according to useful properties & add input parameters
-[nx, ~, ~, ~, ~]=size(rawdata);             %MCM TODO: handle multi-echo data. 
+[nx, ntviews, ~, ~, ~]=size(rawdata);       %MCM TODO: handle multi-echo data. 
+nSpokesMotionDet = ntviews;                 %MCM TODO: determine this according to useful properties & add input parameters
 
 % Get central k-space profiles along kz
 ZIP = squeeze(rawdata(nx/2+2,:,:,:));
@@ -37,7 +37,7 @@ ZIP=abs(fftshift(ifft(ZIP,400,1),1)); % FFT and interpolation along the kz dimen
 
 %Normalization of each projection in each coil element
 ZIP=ProjNorm(ZIP);%Normalization includes temporal smoothing
-if doFigures
+if doFig
     figure,imagesc(abs(ZIP(:,:,15))),axis image, axis off, colormap(gray),title('Respiratory Motion')
 end
 
