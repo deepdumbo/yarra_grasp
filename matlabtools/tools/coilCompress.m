@@ -80,11 +80,10 @@ D=reshape(kdata,prod(sk(1:end-1)),nc);
 % elements used
 if doErr
     for j=1:nc
-        S1 = S;
-        for i=j:nc
-            S1(i,i) = 0;
-            err(j) = norm(U*S1*V' - D, 'fro');
-        end
+        s1 = diag(S);
+        s1(j:end) = 0;
+        S1 = diag(s1);
+        err(j) = norm(U*S1*V' - D, 'fro');
     end
 end
 
