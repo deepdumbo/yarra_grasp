@@ -58,6 +58,7 @@ nSpokesMotionDet = spokes;         % Number of spokes used for motion detection
 
 % ...for coil compression
 ncc=8;                                  % Select to how many coil channels the data should be compressed
+doErr = 1;                              % Select if calculation of compression error should be performed
 
 % ...for respiratory resolved recon
 nresp=4;                                % number of respiratory phases
@@ -324,25 +325,40 @@ end
 
 if doCoilCompression
     disp('Performing Coil Compression...');
+%     Hoe dit werkt:
+% - Beschrijf elk datapunt als een vector in coil-ruimte (elke coil
+% vertegenwoordigt een as in deze ruimte)
+% - Schrijf de data daartoe om naar een Nd (datapunten) x Nc (coils)
+% matrix, die de datapunten dus als rijvectoren bevat.
+% - Bereken de SVD van deze ruimte.
+% - De hieruit volgende matrix V bevat de z.g. 'right singular vectors',
+% waarvan de kolommen de eenheidsvectoren bevatten van een nieuwe basis
+% voor de datavectoren. Deze basisvectoren zijn lineaire combinaties van de
+% oorspronkelijke eenheidsvectoren, die zo zijn gekozen dat de variatie in
+% de data langs de betreffende as steeds zo groot mogelijk is, afgezien van
+% die langs eerdere assen. (Dus variatie langs as 1 is grootst, langs as 2
+% kleiner, etc, maar altijd maximum bereikbare van de overgebleven
+% dimensies). In dit geval kunnen deze basisvectoren worden gezien als
+% 'gecombineerde spoelelementen'.
+% Het product van een data- (=rij-)vector met een kolom van V geeft de
+% coordinaat van die vector langs de betreffende V-as. Product van de
+% rijvector met matrix V geeft dus dezelfde vector uitgedrukt in de basis
+% V, en product D*V geeft alle datavectoren uitgedrukt in de basis V.
+% - Waar V de nieuwe basisvectoren bevat op volgorde van data-variatie,
+% bevat het SVD-resultaat S de grootte van die variaties. Latere elementen
+% van S bevatten lagere waarden, die dus tot uitdrukking brengen dat de
+% data langs de bijbehorende V-vector weinig variatie (=informatie) bevat.
+% Dit betekent weer dat weglaten van die componenten weinig gevolgen heeft
+% voor de daadwerkelijke inhoud van de data
+% - Bekijk dus de 'singular values' (uit S), en besluit welke wel en niet
+% zullen worden meegenomen
+% - Vermenigvuldig D met de kolommen van V die de meeste informatie
+% bevatten: data is gecomprimeerd tot een aantal 'gecombineerde
+% spoelelementen', dat dus lager is dan het totaal.
     
-    % Permute dimensions:
-    % from [nx,nc,ntviews,nz]
-    % to   [nx,ntviews,nz,nc]
-    kdata = permute(kdata,[1,3,4,2]);
-    [nx,ntviews,nz,nc]=size(kdata);
-
-    D=reshape(kdata,nx*nz*ntviews,nc);
-    [U,S,V]=svd(D,'econ');
-    kdata=single(reshape(D*V(:,1:ncc),nx,ntviews,nz,ncc));
-    % save Data/kdata_Unstreaking_CoilCompression.mat kdata
     
-    % Free up some memory
-    clear D U S V
-    
+    [kdata_out, S, err] = coilCompress(kdata, ncc, doErr);
     disp('...done.');
-    
-    % Permute dimensions back to default [nx,nc,ntviews,nz]
-    kdata = permute(kdata, [1,4,2,3]);    
 end
 
 %% Perform gridding reconstruction
