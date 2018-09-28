@@ -24,7 +24,8 @@ echoes          = p.Results.echoes;
 fullPath = fullfile(twixFilePath, twixFileName);
 if doLoadTwixFile
     % Load header info from previously saved file: faster
-    if isfile(fullPath)
+%     if isfile(fullPath)   % only works from R2017b
+    if exist(fullPath, 'file')
 		load(fullPath)
     else
         msg = 'No valid file name for Twix data provided: aborting';
