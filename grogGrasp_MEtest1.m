@@ -3,25 +3,28 @@
 clear
 clc
 
+%% Set initial parameters
+bp 		= './';															% base path for all image recon tools
+
 % ## Include packages in subfolders
-addpath('./toolboxes/MIRT');
-addpath('./toolboxes/MIRT/mri');                                            % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('./toolboxes/MIRT/nufft');                                          % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('./toolboxes/MIRT/utilities');                                      % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('./toolboxes/MIRT/systems');                                        % for partial Fourier (from Jeff Fesslers toolbox)
-addpath('./toolboxes/mapVBVD/');                                            % for reading TWIX files
-addpath('./toolboxes/NYU/');                                                % for ...stuff
-addpath('./toolboxes/NYU/imagescn_R2008a/');                                % for plotting images
-addpath('./demos/NYU/RACER-GRASP_GROG-GRASP/');                                % for plotting images
-addpath('./operators');                                                     % for operators like NUFFT, Total Variation, GROG, etc
-addpath('./tools');                                                         % for home-written helper and recon functions
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT'));
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
+addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
+addpath(fullfile(bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
+addpath(fullfile(bp,'matlabtools/tools'));    
 
 
 % Set parameters:
 % ...for global settings & flags
 doFigures               = 1;            % Display output in figures
 doGpu                   = 0;            % Use GPU where implemented
-slices                  = 0;            % Select which slice(s) to reconstruct. 0 = all.
+slices                  = 30:35;            % Select which slice(s) to reconstruct. 0 = all.
 doCropImg               = 1;            % Crop images to FOV requested by MR operator
 
 % ...for selecting which parts of the code to run
@@ -33,16 +36,16 @@ doFtz                   = 1;            % Perform FT in z-direction
 doSliceOversampling     = 1;            % Remove slice-oversampled slices from data
 doUnstreaking           = 0;            % Perform coil unstreaking
 doCoilCompression       = 1;            % Perform coil compression
-doGridding              = 0;            % Perform gridding reconstruction
+doGridding              = 1;            % Perform gridding reconstruction
 doGriddingXdGrasp       = 0;            % Perform respiratory motion-resolved griddig reconstruction
 doXdGrasp               = 0;            % Perform respiratory motion-resolved iterative recon using XD-GRASP
-doGrogGrasp             = 1;            % Perform CS reconstruction using GROG
+doGrogGrasp             = 0;            % Perform CS reconstruction using GROG
 doGrogXdGrasp           = 0;            % Perform respiratory motion-resolved iterative recon using GROG
-doDicomWrite            = 0;            % Write result as dicom files
+doDicomWrite            = 1;            % Write result as dicom files
  
 % ...for reading raw data
-loadTwixFile            = 1;            % Read file meta data from pre-saved file 'twixData.mat'?
-saveTwixFile            = 0;            % Save a file twixData.mat after reading in raw data
+doLoadTwixFile          = 1;            % Read file meta data from pre-saved file 'twixData.mat'?
+doSaveTwixFile          = 0;            % Save a file twixData.mat after reading in raw data
 channels                = 0;            % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
 spokes                  = 1:110;            % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
 partitions              = 0;            % Select which kz line(s) to read from the data. 0 = all.
@@ -71,7 +74,7 @@ bas=512;                                % Number of columns/rows in cartesian-in
 % ... for writing data as Dicom 
 dicomWriteMethod = 0;
 out_path = './out';
-fileName = 'grogGraspXd';
+
 
 %% Load data
 % Adapted from iterativeradial_multicoil.m (NYU Demo)
@@ -89,9 +92,11 @@ if doLoadData
     % fileName='/mrs_data5/MarMaa/Data/MR3_Prisma/180906_RavePhantom/meas_MID00027_FID63140_RAVE_YGXL.dat';
     
     % Name of Twix file to read and/or write
+    twixFilePath    = './twixdata/';
     twixFileName    = 'NanoOes_Ravetestpt01.mat';
-    [twix, rawdata] = loadDataGoldenAngle(fileName, 'loadTwixFile', loadTwixFile, ...
-                                                    'saveTwixFile', saveTwixFile, ...
+    [twix, rawdata] = loadDataGoldenAngle(fileName, 'doLoadTwixFile', doLoadTwixFile, ...
+                                                    'doSaveTwixFile', doSaveTwixFile, ...
+                                                    'twixFilePath', twixFilePath, ...
                                                     'twixFileName', twixFileName, ...
                                                     'removeOS', removeOS,...
                                                     'channels', channels, ...
@@ -232,12 +237,25 @@ if doSliceOversampling
     % This may not use the correct parameters to determine to how many
     % lines to remove oversampled lines...
     
-    % Find partitions to actually reconstruct (ignoring slice oversampled ones)
-    startPartition = twix.hdr.Config.LoopStartPar;
-    nparImg = twix.hdr.Config.LoopLengthPar;
-%     nparImg = twix.hdr.Config.NImagePar;
-    slices = startPartition:startPartition+nparImg-1;
-    kdata = kdata(:,:,:,slices,:);
+    if slices ~=0
+        % Slices already removed, do nothing
+        slices = 1:size(kdata,4);
+    else
+        % Find partitions to actually reconstruct (ignoring slice oversampled ones)
+        startPartition = twix.hdr.Config.LoopStartPar;
+        nparImg = twix.hdr.Config.LoopLengthPar;
+        slices = startPartition:startPartition+nparImg-1;
+        kdata = kdata(:,:,:,slices,:);
+        slices = 1:nparImg;
+    end
+    
+    
+%     % Find partitions to actually reconstruct (ignoring slice oversampled ones)
+%     startPartition = twix.hdr.Config.LoopStartPar;
+%     nparImg = twix.hdr.Config.LoopLengthPar;
+% %     nparImg = twix.hdr.Config.NImagePar;
+%     slices = startPartition:startPartition+nparImg-1;
+%     kdata = kdata(:,:,:,slices,:);
     
     disp('...done.');
 end
@@ -364,23 +382,23 @@ end
 
 %% Perform motion resolved gridding reconstruction
 % Based on the demo file 'iterative_multicoil.m' by Tobias Block
-if doGriddingXdGrasp
-    disp('Performing XD gridding reconstruction...');
-    out_griddingXd = reconGriddingXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
-    
-    if doCropImg
-        out_griddingXd = CropImg(out_griddingXd,nImgLin,nImgCol);
-    end
-    
-    if doFigures
-        for ii=1:nresp
-            ttl = sprintf('XD-Gridding: Resp state %d', ii);
-            figure('Name', ttl);
-            imagescn(imresize(abs(out_griddingXd(:,:,:,ii)), [size(out_griddingXd,1)*2 size(out_griddingXd,2)*2], 'bilinear'),[],[],[],3);
-        end
-    end
-    disp('...done.');
-end
+% if doGriddingXdGrasp
+%     disp('Performing XD gridding reconstruction...');
+%     out_griddingXd = reconGriddingXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
+%     
+%     if doCropImg
+%         out_griddingXd = CropImg(out_griddingXd,nImgLin,nImgCol);
+%     end
+%     
+%     if doFigures
+%         for ii=1:nresp
+%             ttl = sprintf('XD-Gridding: Resp state %d', ii);
+%             figure('Name', ttl);
+%             imagescn(imresize(abs(out_griddingXd(:,:,:,ii)), [size(out_griddingXd,1)*2 size(out_griddingXd,2)*2], 'bilinear'),[],[],[],3);
+%         end
+%     end
+%     disp('...done.');
+% end
 
 
 %% Perform GRASP Reconstruction
@@ -413,56 +431,56 @@ end
 %% Perform XD-GRASP Reconstruction
 % Adapted from Demo_XDGRASP_NonContrast (NYU Demo provided by Li Feng)
 
-if doXdGrasp
-    disp('Performing XD-GRASP reconstruction...');
-    
-    [out_xdGrasp, out_griddingMcXd, tXdGrasp] = reconXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
-    if doCropImg
-        out_xdGrasp      = CropImg(out_xdGrasp,nImgLin,nImgCol);
-        out_griddingMcXd = CropImg(out_griddingMcXd,nImgLin,nImgCol);
-    end
-    
-    if doFigures
-        for ii=1:nresp
-            ttl = sprintf('MC Gridding: Resp state %d', ii);
-            figure('Name', ttl);
-            imagescn(imresize(abs(out_griddingMcXd(:,:,:,ii)), [size(out_griddingMcXd,1)*2 size(out_griddingMcXd,2)*2], 'bilinear'),[],[],[],3);
-            ttl = sprintf('GRASP: Resp state %d', ii);
-            figure('Name', ttl);
-            imagescn(imresize(abs(out_xdGrasp(:,:,:,ii)), [size(out_griddingMcXd,1)*2 size(out_griddingMcXd,2)*2], 'bilinear'),[],[],[],3);
-        end
-    end
-    
-    disp('...done.');
-end
+% if doXdGrasp
+%     disp('Performing XD-GRASP reconstruction...');
+%     
+%     [out_xdGrasp, out_griddingMcXd, tXdGrasp] = reconXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
+%     if doCropImg
+%         out_xdGrasp      = CropImg(out_xdGrasp,nImgLin,nImgCol);
+%         out_griddingMcXd = CropImg(out_griddingMcXd,nImgLin,nImgCol);
+%     end
+%     
+%     if doFigures
+%         for ii=1:nresp
+%             ttl = sprintf('MC Gridding: Resp state %d', ii);
+%             figure('Name', ttl);
+%             imagescn(imresize(abs(out_griddingMcXd(:,:,:,ii)), [size(out_griddingMcXd,1)*2 size(out_griddingMcXd,2)*2], 'bilinear'),[],[],[],3);
+%             ttl = sprintf('GRASP: Resp state %d', ii);
+%             figure('Name', ttl);
+%             imagescn(imresize(abs(out_xdGrasp(:,:,:,ii)), [size(out_griddingMcXd,1)*2 size(out_griddingMcXd,2)*2], 'bilinear'),[],[],[],3);
+%         end
+%     end
+%     
+%     disp('...done.');
+% end
 
 
 %% Perform GROG XD-GRASP Reconstruction
 % Adapted from Demo4_Reconstruction.m from RACER-GRASP_GROG-GRASP demo
 % package (NYU Demo provided by Li Feng)
 % This section includes coil sensitivities estimation.
-if doGrogXdGrasp
-    disp('Performing GROG XD-GRASP Reconstruction...');
-    
-    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
-    if doCropImg
-        out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
-    end
-    
-    if doFigures
-        for ii=1:nresp
-            ttl = sprintf('GROG-GRASP: Resp state %d', ii);
-            figure('Name', ttl);
-            imagescn(imresize(abs(out_grogXdGrasp(:,:,:,ii)), [size(out_grogXdGrasp,1)*2 size(out_grogXdGrasp,2)*2], 'bilinear'),[],[],[],3);
-        end
-    end
-    disp('...done.');
-end
+% if doGrogXdGrasp
+%     disp('Performing GROG XD-GRASP Reconstruction...');
+%     
+%     [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdGrasp(kdata(:,:,:,slices), Res_Signal, nresp);
+%     if doCropImg
+%         out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
+%     end
+%     
+%     if doFigures
+%         for ii=1:nresp
+%             ttl = sprintf('GROG-GRASP: Resp state %d', ii);
+%             figure('Name', ttl);
+%             imagescn(imresize(abs(out_grogXdGrasp(:,:,:,ii)), [size(out_grogXdGrasp,1)*2 size(out_grogXdGrasp,2)*2], 'bilinear'),[],[],[],3);
+%         end
+%     end
+%     disp('...done.');
+% end
 
 
 %% Writing data to Dicom slices
 if doDicomWrite
-    grogGrasp_xd = uint16(grogGrasp_xd./max(grogGrasp_xd(:))*(2^12 - 1));
+%     grogGrasp_xd = uint16(grogGrasp_xd./max(grogGrasp_xd(:))*(2^12 - 1));
     
     switch dicomWriteMethod
         case 0 % Even stupider: use NIFTI
@@ -475,25 +493,29 @@ if doDicomWrite
 %             niftiwrite(grogGrasp_xd,fName);
             
         case 1 % The stupid way: just write them without any additional info.
-
-            % Reshape into a 3D volume such that the multiple volumes are stacked on
-            % top of eachother
-            s = size(grogGrasp_xd);
-            grogGrasp_xd = reshape(grogGrasp_xd, [s(1) s(2) prod(s(3:end))]);
-            
-            infoGrasp = dcmInitInfo();
-            infoGrasp.SeriesDescription = 'GrogGrasp'
-            infoGrasp = repmat(infoGrasp,size(grogGrasp_xd,3),1);
-            imgNumbers = num2cell(1:length(infoGrasp));
-            [infoGrasp.InstanceNumber] = imgNumbers{:};
-
-            % Write 2D slices to dcm files
-            for i=1:10 %:size(grogGrasp_xd,3)
-%                 fName = sprintf('%s_%03d.ima', fileName, i);
-                fName = sprintf('%s_%03d.dcm', fileName, i);
-                fName = fullfile(out_path, fName);
-                dicomwrite(squeeze(grogGrasp_xd(:,:,i)), fName, infoGrasp(i));
+            if ~exist(out_path, 'dir')
+                mkdir(out_path);
             end
+            if exist('out_griddingMe', 'var')
+                out1 = uint16(abs(out_griddingMe)*(2^12-1));
+                for i=1:size(out1,4) %echoes
+                    for j=1:size(out1,3) %slices
+                        fName = sprintf('grid_slice%d.%d.dcm',j,i);
+                        dicomwrite(out1(:,:,j,i), [out_path, '/', fName], 'MultiframeSingleFile', false);
+                    end
+                end
+            end
+            
+            if exist('out_grogXdGrasp', 'var')
+                out1 = uint16(abs(out_grogXdGrasp)*(2^12-1));
+                for i=1:size(out1,4) %time points
+                    for j=1:size(out1,3) %slices
+                        fName = sprintf('slice%d.%d.dcm',j,i);
+                        dicomwrite(out1(:,:,j,i), [out_path, '/', fName], 'MultiframeSingleFile', false);
+                    end
+                end
+            end
+
         case 2 % Get dicom tags from example series generated by scanner
             % Load 'example' series to copy Dicom tags from
             [~, dcmInfo, ~] = dcmReadSingleVolume(dcmExampleDir, '');
