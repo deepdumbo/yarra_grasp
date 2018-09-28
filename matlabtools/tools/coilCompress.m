@@ -56,7 +56,12 @@ function [kdata_out, S, err] = coilCompress(kdata, ncc, doErr)
 % - Vermenigvuldig D met de kolommen van V die de meeste informatie
 % bevatten: data is gecomprimeerd tot een aantal 'gecombineerde
 % spoelelementen', dat dus lager is dan het totaal.
-    
+
+% Parse inputs
+if nargin<3
+    doErr = 0;
+end
+
 % Permute dimensions:
 % from [nx,nc,ntviews,nz,...]
 % to   [nx,ntviews,nz,...,nc]
