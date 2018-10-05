@@ -16,7 +16,19 @@ clc
 if nargin<5
     % TODO: introduce a way of finding out how much memory is available,
     % and choose the recon mode as appropriate
-    pars = initReconPars('low_mem');
+    hostname = getHostName();
+    switch hostname
+        case 'rdbiomr'
+            disp("We're on rdbiomr, using full data set");
+            pars = initReconPars('full');
+        case 'rdcuda'
+            disp("We're on rdcuda, using reduced data set to save memory");
+            pars = initReconPars('low_mem');
+        otherwise
+            disp("We're on an unknown machine, using reduced data set to save memory");
+            pars = initReconPars('low_mem');
+    end
+    
 end
 
 
