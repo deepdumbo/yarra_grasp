@@ -1,5 +1,5 @@
 function raw_out = pfGoldenAngle(raw_in, nparPF)
-% Perform filling of missing k-space data in a multi-echo golden angle 
+% Perform filling of missing k-space data in a golden angle 
 % radial stack of stars acquisition performed with Partial Fourier in the 
 % partition (slice) direction.
 % For now, we consider each 'view' (ie all lines at a given angle, ie
@@ -10,6 +10,10 @@ function raw_out = pfGoldenAngle(raw_in, nparPF)
 % - raw_in:     Raw k-space data. Dimensions should be in same order as
 %               read in by mapVBVD, ie [nx,nc,ntviews,npar,...]
 % - nparPF:     Number of partitions after partial Fourier filling
+% 
+% The function properly handles all dimensions beyond npar, in that it
+% simply loops over them. It therefore correctly handles things like 
+% multiple echoes, averages, etc.
 % 
 % Written by Marnix Maas, Radboud UMC (Marnix.Maas@radboudumc.nl)
 % September 2018

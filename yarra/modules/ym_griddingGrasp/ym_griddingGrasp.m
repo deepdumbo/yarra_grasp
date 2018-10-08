@@ -19,13 +19,13 @@ if nargin<5
     hostname = getHostName();
     switch hostname
         case 'rdbiomr'
-            disp("We're on rdbiomr, using full data set");
+            disp('Running on rdbiomr, using full data set');
             pars = initReconPars('full');
         case 'rdcuda'
-            disp("We're on rdcuda, using reduced data set to save memory");
+            disp('Running on rdcuda, using reduced data set to save memory');
             pars = initReconPars('low_mem');
         otherwise
-            disp("We're on an unknown machine, using reduced data set to save memory");
+            disp('Running on an unknown machine, using reduced data set to save memory');
             pars = initReconPars('low_mem');
     end
     
