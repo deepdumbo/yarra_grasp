@@ -1,4 +1,4 @@
-function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_Lung(in_path, in_file, out_path, temp_path, pars)
+function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
 
 % Function for performing a respiratory resolved XD-GRASP reconstruction
 % using GROG pre-interpolation, based on NYU demo scripts by Li Feng.
@@ -13,28 +13,37 @@ function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_Lung(in_path, in_fil
 %% Parse inputs
 clc
 if nargin<5
-    pars = initReconPars('grogXdGrasp_lung');
+    hostname = getHostName();
+    switch hostname
+        case 'rdbiomr'
+            disp('Running on rdbiomr, using full data set');
+            pars = initReconPars('full');
+        case 'rdcuda'
+            disp('Running on rdcuda, using reduced data set to save memory');
+            pars = initReconPars('low_mem');
+        otherwise
+            disp('Running on an unknown machine, using reduced data set to save memory');
+            pars = initReconPars('low_mem');
+    end
+    
 end
 
 
 %% Set initial parameters
-bp 		= '../../';															% base path for all image recon tools
 
 % ## Include packages in subfolders
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT'));
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
-% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
-% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
-% addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
-addpath(fullfile(bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
-addpath(fullfile(bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT'));
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/Optimizers/'));                  % for (compressed sensing) optimizers
+addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
+addpath(fullfile(pars.bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
 
 
 
@@ -47,6 +56,7 @@ if pars.doLoadData
     fileName = fullfile(in_path,in_file);
     [twix, rawdata] = loadDataGoldenAngle(fileName, 'doLoadTwixFile', pars.doLoadTwixFile, ...
                                                     'doSaveTwixFile', pars.doSaveTwixFile, ...
+                                                    'twixFilePath', pars.twixFilePath, ...
                                                     'twixFileName', pars.twixFileName, ...
                                                     'removeOS', pars.removeOS,...
                                                     'channels', pars.channels, ...
@@ -67,7 +77,8 @@ if pars.doPartialFourier
     disp('Doing Partial Fourier...');
     
     % Multi-echo partial fourier processing in 2D
-    rawdata = pfGoldenAngleMe(rawdata, twix);
+    nparPF = twix.hdr.Meas.Partitions;
+    rawdata = pfGoldenAngle(rawdata, nparPF);
     
     disp('...done.');
 end
@@ -79,7 +90,7 @@ end
 if pars.doSliceInterp
     disp('Doing Slice interpolation...');
     nparSliceInterp = twix.hdr.Meas.NPaftLen;    % Number of partitions for Fourier Transform
-    rawdata = zeroPadPar_Filt(rawdata,nparSliceInterp);
+    rawdata = zeroPadPar_Filt(rawdata, nparSliceInterp);
     
     disp('...done.');
 end
@@ -88,8 +99,7 @@ end
 %% Motion detection
 if pars.doMotionDet
     disp('Performing motion detection...');
-    doContrastCorr = 0;
-    Res_Signal = motionDetGrasp(rawdata, doContrastCorr, pars.doFigures);
+    Res_Signal = motionDetGrasp(rawdata, pars.doContrastCorr, pars.doFigures);
     
     disp('...done.');
 end
@@ -100,22 +110,19 @@ end
 if pars.doFtz
     disp('Performing Fourier Transform in z-direction...');
     [nx, nc, ntviews, nkz] = size(rawdata);
-%     if pars.doGpu
-%         kdata = gpuArray(single(zeros(size(rawdata))));
-%     else
-        kdata = single(zeros(size(rawdata)));
-%     end
+    
+    % Pre-allocate memory
+	kdata = single(zeros(size(rawdata)));
+
     for c = 1:nc        
         % Inverse Fourier transform along z
         kdata(:,c,:,:) = fftshift(ifft(ifftshift(rawdata(:,c,:,:),4),[],4),4);          % Unsure whether order of fftshift and ifftshift is correct here (or whether that matters)
     end
     
-    % delete the slices we don't need anymore
+    % Keep only the slices that were requested to be reconstructed
     if pars.slices ~= 0
         kdata = kdata(:,:,:,pars.slices);
     end
-    
-    kdata = gather(kdata);
     
     % Free up some memory
     clear rawdata
@@ -130,7 +137,7 @@ if pars.doSliceOversampling
     disp('Performing Slice oversampling...');
     
     if pars.slices ~=0
-        % Slices already removed, do nothing
+        % Slices have already been removed, do nothing
         slices = 1:size(kdata,4);
     else
         % Find partitions to actually reconstruct (ignoring slice oversampled ones)
@@ -163,24 +170,9 @@ end
 if pars.doCoilCompression
     disp('Performing Coil Compression...');
     
-    % Permute dimensions:
-    % from [nx,nc,ntviews,nz]
-    % to   [nx,ntviews,nz,nc]
-    kdata = permute(kdata,[1,3,4,2]);
-    [nx,ntviews,nz,nc]=size(kdata);
-
-    D=reshape(kdata,nx*nz*ntviews,nc);
-    [U,S,V]=svd(D,'econ');
-    kdata=single(reshape(D*V(:,1:pars.ncc),nx,ntviews,nz,pars.ncc));
-    % save Data/kdata_Unstreaking_CoilCompression.mat kdata
-    
-    % Free up some memory
-    clear D U S V
+    kdata = coilCompress(kdata, pars.ncc);
     
     disp('...done.');
-    
-    % Permute dimensions back to default [nx,nc,ntviews,nz]
-    kdata = permute(kdata, [1,4,2,3]);    
 end
 
 
@@ -212,7 +204,7 @@ end
 if pars.doGrogXdGrasp
     disp('Performing GROG XD-GRASP Reconstruction...');
     
-    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdGrasp(kdata(:,:,:,slices), Res_Signal, pars.nresp);
+    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
     if pars.doCropImg
         out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
     end
