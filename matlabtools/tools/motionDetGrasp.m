@@ -25,7 +25,7 @@ if nargin<2
     doContrastCorr = 0;
 end
 
-[nx, ntviews, ~, ~, ~]=size(rawdata);       %MCM TODO: handle multi-echo data. 
+[nx, ~, ntviews, ~, ~]=size(rawdata);       %MCM TODO: handle multi-echo data. 
 nSpokesMotionDet = ntviews;                 %MCM TODO: determine this according to useful properties & add input parameters
 
 % Get central k-space profiles along kz
