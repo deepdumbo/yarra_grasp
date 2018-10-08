@@ -38,14 +38,17 @@ Nqu = min(floor(nx/2 * pi/2), ntviews);                 % Nyquist spokes, please
 % MCM changed from 350
 
 % Initialize output image & recon time measurement
-out_img      = single(zeros(nx,nx,nz,pars.nresp,nt));
+% out_img      = single(zeros(nx,nx,nz,pars.nresp,nt));
+out_img      = single(zeros(pars.bas,pars.bas,nz,nt));
 t = [];
 for sl=1:nz % loop through selected slices
     tic;
     fprintf('Starting GROG XD-GRASP recon of slice %d / %d\n', sl, nz);
     % Select slice to be reconstructed
     kdata1=kdata(:,:,sl,:);                     % Kunnen we dit squeezen?
-%     [nx,ntviews,~,nc]=size(kdata1);         % MCM: seems redundant, but we have a new number of coils since compressing!
+%     [nx,ntviews,~,nc]=size(kdata1);         % MCM: seems redundant, but
+%     ntviews was altered below in a previous version. Consider putting
+%     this line back to avoid future problems?
 %     % Should be inside slice loop, variables are overwritten again below
     
     % Generate trajectory (For GROG only, NOT for general gridding)
@@ -95,7 +98,7 @@ for sl=1:nz % loop through selected slices
     
     % Calculate density compensation for each dynamic time point
     % (see paper, this is the numerator in the Weights calculation)
-    [nx,ntviews,nt,nc]  = size(kdata1);          %MCM Necessary: does this change? --> Hier wordt alleen ntviews gelijk gezet aan nLinDyn, de rest verandert bmbw niet. Regel kan dus weg.
+%     [nx,ntviews,nt,nc]  = size(kdata1);          %MCM Necessary: does this change? --> Hier wordt alleen ntviews gelijk gezet aan nLinDyn, de rest verandert bmbw niet. Regel kan dus weg.
     G                   = GROG.init(kdata1,Traj,Gx,Gy,0);
     DCF_U               = reshape(G.weight,[sqrt(size(G.weight,1)),sqrt(size(G.weight,1)),nt]);
     DCF_U               = CropImg(DCF_U,pars.bas,pars.bas);         % size [bas,bas,nt?]
@@ -142,8 +145,11 @@ for sl=1:nz % loop through selected slices
     end
     
     mask=single(kdata1~=0);
-    param.SG=gpuArray(SoftWeight);
-    Weighting=repmat(Weighting,[1 1 1 1 pars.nresp]);
+    if pars.doGpu
+        param.SG = gpuArray(SoftWeight);
+    else
+        param.SG = SoftWeight;
+    end
     
     param.y=kdata1.*sqrt(Weighting);
     param.E=Emat_GROG2DSG(mask,b1,Weighting);
@@ -157,11 +163,13 @@ for sl=1:nz % loop through selected slices
     
     clc
     for n=1:3
+        % Motion _weighted_ reconstruction
         recon_cs = CSL1NlCg_4DDCE(recon_cs,param);
     end
-    recon_cs=CropImg(recon_cs,nx/2,nx/2);
+%     recon_cs=CropImg(recon_cs,nx/2,nx/2);
     
-    out_img(:,:,sl,:,:)       = gather(single(recon_cs));
+%     out_img(:,:,sl,:,:)       = gather(single(recon_cs));
+    out_img(:,:,sl,:)       = gather(single(recon_cs));
     
 %     param.y     = kdata1.*sqrt(Weighting);
 %     mask        = single(kdata1~=0);
