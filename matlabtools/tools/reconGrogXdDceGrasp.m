@@ -21,6 +21,7 @@ if nargin<3             % Should we do this? Or enforce parameter struct to be p
     pars.nresp      = 4;
     pars.doGpu      = 0;
     pars.nLinDyn    = 0;
+    pars.nIter      = 4;
 end
 
 % Permute dimensions of kdata to [nx,ntviews,nz,nc]
@@ -162,7 +163,7 @@ for sl=1:nz % loop through selected slices
     param.display = 1;
     
     clc
-    for n=1:3
+    for n=1:pars.nIter
         % Motion _weighted_ reconstruction
         recon_cs = CSL1NlCg_4DDCE(recon_cs,param);
     end

@@ -1,4 +1,4 @@
-function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
+function [out_grogXdGrasp, out_griddingXd, kdata, Res_Signal] = ym_grogXdGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
 
 % Function for performing a respiratory resolved XD-GRASP reconstruction
 % using GROG pre-interpolation, based on NYU demo scripts by Li Feng.
@@ -206,12 +206,15 @@ if pars.doGrogXdGrasp
     
     [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
     if pars.doCropImg
-        out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
+        if nImgLin<size(out_grogXdGrasp,1) && nImgCol<size(out_grogXdGrasp,2)
+            out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
+        end
     end
     
     if pars.doFigures
-        for ii=1:pars.nresp
-            ttl = sprintf('GROG-GRASP: Resp state %d', ii);
+        nt = floor(ntviews/pars.nLinDyn);
+        for ii=1:nt
+            ttl = sprintf('GROG-GRASP: dyn time point %d', ii);
             figure('Name', ttl);
             imagescn(imresize(abs(out_grogXdGrasp(:,:,:,ii)), [size(out_grogXdGrasp,1)*2 size(out_grogXdGrasp,2)*2], 'bilinear'),[],[],[],3);
         end
