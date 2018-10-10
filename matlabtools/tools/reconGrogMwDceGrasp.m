@@ -1,5 +1,5 @@
-function [out_img, t] = reconGrogXdDceGrasp(kdata, Res_Signal, pars)
-% Function for performing a respiratory motion resolved reconstruction of
+function [out_img, t] = reconGrogMwDceGrasp(kdata, Res_Signal, pars)
+% Function for performing a respiratory motion weighted reconstruction of
 % golden-angle radial sparse (GRASP) k-space data using compressed sensing 
 % with GROG pre-interpolation.
 % NOTE: it is assumed that a fourier transform along the slice direction
@@ -16,13 +16,6 @@ function [out_img, t] = reconGrogXdDceGrasp(kdata, Res_Signal, pars)
 % Adapted from Demo4_Reconstruction.m from RACER-GRASP_GROG-GRASP demo
 % package (NYU Demo provided by Li Feng)
 % by Marnix Maas (Marnix.Maas@radboudumc.nl), August 2018
-
-if nargin<3             % Should we do this? Or enforce parameter struct to be passed?
-    pars.nresp      = 4;
-    pars.doGpu      = 0;
-    pars.nLinDyn    = 0;
-    pars.nIter      = 4;
-end
 
 % Permute dimensions of kdata to [nx,ntviews,nz,nc]
 kdata               = permute(kdata, [1,3,4,2]);
@@ -159,11 +152,11 @@ for sl=1:nz % loop through selected slices
     param.TV=TV_Temp;
     Weight1=0.04;
     param.TVWeight=max(abs(recon_cs(:)))*Weight1;
-    param.nite = 8;
+    param.nite = pars.nIterIn;
     param.display = 1;
     
     clc
-    for n=1:pars.nIter
+    for n=1:pars.nIterOut
         % Motion _weighted_ reconstruction
         recon_cs = CSL1NlCg_4DDCE(recon_cs,param);
     end

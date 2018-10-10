@@ -52,14 +52,12 @@ end
 % ...for coil compression
 pars.ncc                    = 8;            % Select to how many coil channels the data should be compressed
 
-% ...for respiratory resolved recon
+% ...for respiratory weighted recon
 pars.nresp                  = 4;            % number of respiratory phases
-if pars.spokes == 0
-    pars.nLinDyn            = 0;            % number of spokes per dynamic time point. 0 = all (ie 1 time point)
-else
-    pars.nLinDyn=length(pars.spokes);           
-end
-pars.bas=512;                               % Number of columns/rows in cartesian-interpolated (ie GROG) k-space data & output image.
+pars.nLinDyn                = 26;           % Number of spokes per dynamic time point
+pars.nIterOut               = 3;            % Number of outer loop iterations in CS optimization
+pars.nIterIn                = 8;            % Number of inner loop iterations in CS optimization
+pars.bas                    = 640;          % Number of columns/rows in cartesian-interpolated (ie GROG) k-space data & output image. TODO: should this be determined dynamically from the image header data?
 
 % ... for writing data as Dicom
 pars.dicomWriteMethod = 1;
@@ -125,8 +123,10 @@ switch reconType
         
         % ...for respiratory resolved recon
         pars.nresp                  = 4;            % number of respiratory phases
-        pars.nLinDyn                = 36;           % number of spokes per dynamic time point. 0 = all (ie 1 time point)
-        pars.bas                    = 512;          % Number of columns/rows in cartesian-interpolated (ie GROG) k-space data & output image.
+        pars.nLinDyn                = 26;           % number of spokes per dynamic time point. 0 = all (ie 1 time point)
+        pars.nIterOut               = 3;            % Number of outer loop iterations in CS optimization
+        pars.nIterIn                = 8;            % Number of inner loop iterations in CS optimization
+        pars.bas                    = 640;          % Number of columns/rows in cartesian-interpolated (ie GROG) k-space data & output image.
         
         % ... for writing data as Dicom 
         pars.dicomWriteMethod = 1;

@@ -1,11 +1,13 @@
-function [out_grogXdGrasp, out_griddingXd, kdata, Res_Signal] = ym_grogXdGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
+function [out_grogMwGrasp, out_griddingXd, kdata, Res_Signal] = ym_grogMwGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
 
-% Function for performing a respiratory resolved XD-GRASP reconstruction
-% using GROG pre-interpolation, based on NYU demo scripts by Li Feng.
+% Function for performing a respiratory motion-weighted dynamic GRASP 
+% reconstruction using GROG pre-interpolation, based on NYU demo scripts by 
+% Li Feng.
 % Follows the convention of Yarra modules for easy integration.
-% The input parameter pars can be used to pass optional parameters:
-% within Yarra, this appears to be done through a separate config file. We
-% will delete it as appropriate.
+% The input parameter pars can be used to pass optional parameters. When
+% called from Yarra (i.e. without the 'pars' argument), a set of default
+% parameters is obtained by calling the accompanying 'initReconPars.m'
+% file.
 %
 % Written by Marnix Maas (Marnix.Maas@radboudumc.nl), May 2018
 
@@ -197,17 +199,17 @@ if pars.doXdGridding
 end
 
 
-%% Perform GROG XD-GRASP Reconstruction
+%% Perform Motion-weighted GROG-GRASP Reconstruction
 % Adapted from Demo4_Reconstruction.m from RACER-GRASP_GROG-GRASP demo
 % package (NYU Demo provided by Li Feng)
 % This section includes coil sensitivities estimation.
 if pars.doGrogXdGrasp
     disp('Performing GROG XD-GRASP Reconstruction...');
     
-    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
+    [out_grogMwGrasp, tGrogXdGrasp] = reconGrogMwDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
     if pars.doCropImg
-        if nImgLin<size(out_grogXdGrasp,1) && nImgCol<size(out_grogXdGrasp,2)
-            out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
+        if nImgLin<size(out_grogMwGrasp,1) && nImgCol<size(out_grogMwGrasp,2)
+            out_grogMwGrasp = CropImg(out_grogMwGrasp,nImgLin,nImgCol);
         end
     end
     
@@ -216,7 +218,7 @@ if pars.doGrogXdGrasp
         for ii=1:nt
             ttl = sprintf('GROG-GRASP: dyn time point %d', ii);
             figure('Name', ttl);
-            imagescn(imresize(abs(out_grogXdGrasp(:,:,:,ii)), [size(out_grogXdGrasp,1)*2 size(out_grogXdGrasp,2)*2], 'bilinear'),[],[],[],3);
+            imagescn(imresize(abs(out_grogMwGrasp(:,:,:,ii)), [size(out_grogMwGrasp,1)*2 size(out_grogMwGrasp,2)*2], 'bilinear'),[],[],[],3);
         end
     end
     disp('...done.');
@@ -249,7 +251,7 @@ if pars.doDicomWrite
             end
             
             if exist('out_grogXdGrasp', 'var')
-                out1 = uint16(abs(out_grogXdGrasp)*(2^12-1));
+                out1 = uint16(abs(out_grogMwGrasp)*(2^12-1));
                 for i=1:size(out1,4) %time points
                     for j=1:size(out1,3) %slices
                         fName = sprintf('slice%d.%d.dcm',j,i);
