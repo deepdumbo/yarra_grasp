@@ -17,11 +17,6 @@ function [out_img, t] = reconGrogXdGrasp(kdata, Res_Signal, pars)
 % package (NYU Demo provided by Li Feng)
 % by Marnix Maas (Marnix.Maas@radboudumc.nl), August 2018
 
-if nargin<3             % Should we do this? Or enforce parameter struct to be passed?
-    pars.nresp      = 4;
-    pars.doGpu      = 0;
-    pars.nLinDyn    = 0;
-end
 
 % Permute dimensions of kdata to [nx,ntviews,nz,nc]
 kdata               = permute(kdata, [1,3,4,2]);
