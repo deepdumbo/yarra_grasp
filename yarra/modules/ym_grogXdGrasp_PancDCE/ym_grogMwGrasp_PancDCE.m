@@ -1,4 +1,4 @@
-function [out_grogMwGrasp, out_griddingXd, kdata, Res_Signal] = ym_grogMwGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
+function [out_grogMwGrasp, kdata, Res_Signal, tGrogMwGrasp] = ym_grogMwGrasp_PancDCE(in_path, in_file, out_path, temp_path, pars)
 
 % Function for performing a respiratory motion-weighted dynamic GRASP 
 % reconstruction using GROG pre-interpolation, based on NYU demo scripts by 
@@ -44,6 +44,7 @@ addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/'));                        
 addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
 addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
 addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/Optimizers/'));                  % for (compressed sensing) optimizers
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti toolbox'));                    % for creating & storing output in NIFTI-format 
 addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
 addpath(fullfile(pars.bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
 
@@ -203,10 +204,11 @@ end
 % Adapted from Demo4_Reconstruction.m from RACER-GRASP_GROG-GRASP demo
 % package (NYU Demo provided by Li Feng)
 % This section includes coil sensitivities estimation.
-if pars.doGrogXdGrasp
-    disp('Performing GROG XD-GRASP Reconstruction...');
+if pars.doGrogMwGrasp
+    disp('Performing GROG MW-GRASP Reconstruction...');
     
-    [out_grogMwGrasp, tGrogXdGrasp] = reconGrogMwDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
+    [out_grogMwGrasp, tGrogMwGrasp] = reconGrogMwDceGrasp(kdata(:,:,:,slices), Res_Signal, pars);
+        
     if pars.doCropImg
         if nImgLin<size(out_grogMwGrasp,1) && nImgCol<size(out_grogMwGrasp,2)
             out_grogMwGrasp = CropImg(out_grogMwGrasp,nImgLin,nImgCol);
@@ -220,8 +222,17 @@ if pars.doGrogXdGrasp
             figure('Name', ttl);
             imagescn(imresize(abs(out_grogMwGrasp(:,:,:,ii)), [size(out_grogMwGrasp,1)*2 size(out_grogMwGrasp,2)*2], 'bilinear'),[],[],[],3);
         end
+        
+%         for ii=nIterOut
+%             ttl = sprintf('GROG-GRASP: %d iterations', ii);
+%             figure('Name', ttl);
+%             imagescn(imresize(abs(out_grogMwGrasp(:,:,:,1,ii)), [size(out_grogMwGrasp,1)*2 size(out_grogMwGrasp,2)*2], 'bilinear'),[],[],[],3);
+%         end
     end
     disp('...done.');
+    fName = 'out_grogMwGrasp.mat';
+    fName = fullfile(out_path, fName);
+    save(fName, 'out_grogMwGrasp', 'tGrogMwGrasp');
 end
 
 
@@ -229,11 +240,19 @@ end
 %% Writing data to Dicom slices
 if pars.doDicomWrite
     switch pars.dicomWriteMethod
-        case 0 % Even stupider: use NIFTI
+        case 0 % Use NIFTI: can be used as intermediate step before 
+               % conversion to Dicom (e.g. using Mevislab)
+            % Calculate voxel size
+            voxSizeX = twix.hdr.Config.ReadFoV / twix.hdr.Config.NImageCols;
+            voxSizeY = twix.hdr.Config.PhaseFoV / twix.hdr.Config.NImageLins;
+            slabThickness = twix.hdr.MeasYaps.sSliceArray.asSlice{1, 1}.dThickness;
+            voxSizeZ = slabThickness / twix.hdr.Config.NImagePar;
+            voxSize = [voxSizeX voxSizeY voxSizeZ]
             % Create 4D NIFTI structure
-            nii = make_nii(out_img, voxSize);          % Uses NIFTI Toolbox by Jimmy Shen
+            out1 = uint16(abs(out_grogMwGrasp)*(2^12-1));
+            nii = make_nii(out1, voxSize);          % Uses NIFTI Toolbox by Jimmy Shen
             % Save it
-            fName = sprintf('%s_%02d.nii', fileName);
+            fName = 'out_img.nii';
             fName = fullfile(out_path, fName);
             save_nii(nii, fName);                           % Uses NIFTI Toolbox by Jimmy Shen
         case 1 % Write dicom files without any tags: these will be added by postproc module
@@ -250,7 +269,7 @@ if pars.doDicomWrite
                 end
             end
             
-            if exist('out_grogXdGrasp', 'var')
+            if exist('out_grogMwGrasp', 'var')
                 out1 = uint16(abs(out_grogMwGrasp)*(2^12-1));
                 for i=1:size(out1,4) %time points
                     for j=1:size(out1,3) %slices

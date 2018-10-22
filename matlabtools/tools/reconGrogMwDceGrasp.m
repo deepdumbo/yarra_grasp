@@ -37,7 +37,7 @@ out_img      = single(zeros(pars.bas,pars.bas,nz,nt));
 t = [];
 for sl=1:nz % loop through selected slices
     tic;
-    fprintf('Starting GROG XD-GRASP recon of slice %d / %d\n', sl, nz);
+    fprintf('Starting GROG MW-GRASP recon of slice %d / %d\n', sl, nz);
     % Select slice to be reconstructed
     kdata1=kdata(:,:,sl,:);                     % Kunnen we dit squeezen?
 %     [nx,ntviews,~,nc]=size(kdata1);         % MCM: seems redundant, but
@@ -155,7 +155,6 @@ for sl=1:nz % loop through selected slices
     param.nite = pars.nIterIn;
     param.display = 1;
     
-    clc
     for n=1:pars.nIterOut
         % Motion _weighted_ reconstruction
         recon_cs = CSL1NlCg_4DDCE(recon_cs,param);

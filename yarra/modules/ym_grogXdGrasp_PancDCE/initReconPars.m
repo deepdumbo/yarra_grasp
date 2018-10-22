@@ -23,7 +23,7 @@ pars.doSliceOversampling    = 1;			% Cut out / do not reconstruct slices in the 
 pars.doUnstreaking          = 0;           % Perform coil unstreaking
 pars.doCoilCompression      = 1;           % Perform coil compression
 pars.doXdGridding           = 0;           % Perform respiratory resolved gridding recon (for debugging resp sorting issues)
-pars.doGrogXdGrasp          = 1;           % Perform iterative recon using GROG
+pars.doGrogMwGrasp          = 1;           % Perform motion weighted iterative recon using GROG
 pars.doDicomWrite           = 1;           % Write reconstructed data to disk as dicom files
 
 % ...for reading raw data
@@ -92,14 +92,14 @@ switch reconType
         pars.doUnstreaking           = 0;           % Perform coil unstreaking
         pars.doCoilCompression       = 1;           % Perform coil compression
         pars.doXdGridding            = 0;           % Perform respiratory resolved gridding recon (for debugging resp sorting issues)
-        pars.doGrogXdGrasp           = 1;           % Perform iterative recon using GROG
+        pars.doGrogMwGrasp           = 1;           % Perform motion weighted iterative recon using GROG
         pars.doDicomWrite            = 1;           % Write reconstructed data to disk as dicom files
         
         % ...for reading raw data
         pars.doLoadTwixFile          = 1;           % Read file meta data from pre-saved file 'twixData.mat'?
         pars.doSaveTwixFile          = 0;           % Save a file twixData.mat after reading in raw data
         pars.twixFilePath            = fullfile(pars.bp,'twixdata');			% Path to Twix data files
-        pars.twixFileName            = 'PancDCE_Rave_Vol01_3mm.mat';
+        pars.twixFileName            = 'PancDCE_Rave_Vol01_2mm.mat';
         pars.channels                = 0;           % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
         pars.spokes                  = 1:110;           % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
         pars.echoes                  = 0;           % Select which echoes to read, for testing purposes/reducing memory load. 0 = all.
