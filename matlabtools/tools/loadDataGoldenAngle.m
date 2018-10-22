@@ -36,7 +36,13 @@ else
     
     % For VD software, the TWIX file may contain adjustment data. We only want
     % to look at the image data for now.
-    twix = twix{2};
+    % Depending on how the data was transferred (e.g. via Twix file copy or
+    % Yarra), the twix data object may be a struct or a cell array.
+    if isa(twix, 'cell')
+        twix = twix{2};     % MCM: should this be 'end' instead of '2'?
+    end
+    
+    % Save twix file for quicker loading later
     if doSaveTwixFile
         save(strcat(fullPath), 'twix')
     end
