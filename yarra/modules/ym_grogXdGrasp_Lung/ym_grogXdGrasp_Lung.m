@@ -212,7 +212,7 @@ end
 if pars.doGrogXdGrasp
     disp('Performing GROG XD-GRASP Reconstruction...');
     
-    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdGrasp(kdata(:,:,:,slices), Res_Signal, pars.nresp);
+    [out_grogXdGrasp, tGrogXdGrasp] = reconGrogXdGrasp(kdata(:,:,:,slices), Res_Signal, pars);
     if pars.doCropImg
         out_grogXdGrasp = CropImg(out_grogXdGrasp,nImgLin,nImgCol);
     end
