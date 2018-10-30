@@ -13,28 +13,41 @@ function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_Lung(in_path, in_fil
 %% Parse inputs
 clc
 if nargin<5
-    pars = initReconPars('grogXdGrasp_lung');
+    hostname = getHostName();
+    switch hostname
+        case 'rdbiomr'
+            disp('Running on rdbiomr, using full data set');
+            pars = initReconPars('full');
+        case 'rdcuda'
+            disp('Running on rdcuda, using reduced data set to save memory');
+            pars = initReconPars('low_mem');
+        otherwise
+            disp('Running on an unknown machine, using reduced data set to save memory');
+            pars = initReconPars('low_mem');
+    end
+    
 end
 
 
 %% Set initial parameters
-bp 		= '../../';															% base path for all image recon tools
 
 % ## Include packages in subfolders
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT'));
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
-addpath(fullfile(bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
-addpath(fullfile(bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
-% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
-% addpath(fullfile(bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT'));
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/mri'));                         % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/nufft'));                       % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/utilities'));                   % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/MIRT/systems'));                     % for partial Fourier (from Jeff Fesslers toolbox)
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/mapVBVD/'));                         % for reading TWIX files
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/'));                             % for ...stuff
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/MotionDetection/'));             % for motion detection
+% addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/Optimizers/'));                  % for (compressed sensing) optimizers
+% addpath(fullfile(pars.bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
+% addpath(fullfile(pars.bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
 % addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
-addpath(fullfile(bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
-addpath(fullfile(bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti toolbox'));               % for creating & storing output in NIFTI-format 
+addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
+addpath(fullfile(pars.bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
 
 
 
@@ -47,6 +60,7 @@ if pars.doLoadData
     fileName = fullfile(in_path,in_file);
     [twix, rawdata] = loadDataGoldenAngle(fileName, 'doLoadTwixFile', pars.doLoadTwixFile, ...
                                                     'doSaveTwixFile', pars.doSaveTwixFile, ...
+                                                    'twixFilePath', pars.twixFilePath, ...
                                                     'twixFileName', pars.twixFileName, ...
                                                     'removeOS', pars.removeOS,...
                                                     'channels', pars.channels, ...
@@ -57,6 +71,7 @@ if pars.doLoadData
     % Some general parameters for image recon (shouldn't be here...)
     nImgLin = twix.hdr.Config.ImageLines;
     nImgCol = twix.hdr.Config.ImageColumns;
+    pars.bas = 2 * twix.hdr.Config.BaseResolution;
     
     disp('...done.');
 end
@@ -67,7 +82,10 @@ if pars.doPartialFourier
     disp('Doing Partial Fourier...');
     
     % Multi-echo partial fourier processing in 2D
-    rawdata = pfGoldenAngleMe(rawdata, twix);
+%     rawdata = pfGoldenAngleMe(rawdata, twix);
+    
+    nparPF = twix.hdr.Meas.Partitions;
+    rawdata = pfGoldenAngle(rawdata, nparPF);
     
     disp('...done.');
 end
@@ -130,7 +148,7 @@ if pars.doSliceOversampling
     disp('Performing Slice oversampling...');
     
     if pars.slices ~=0
-        % Slices already removed, do nothing
+        % Slices have already been removed, do nothing
         slices = 1:size(kdata,4);
     else
         % Find partitions to actually reconstruct (ignoring slice oversampled ones)
@@ -163,24 +181,9 @@ end
 if pars.doCoilCompression
     disp('Performing Coil Compression...');
     
-    % Permute dimensions:
-    % from [nx,nc,ntviews,nz]
-    % to   [nx,ntviews,nz,nc]
-    kdata = permute(kdata,[1,3,4,2]);
-    [nx,ntviews,nz,nc]=size(kdata);
-
-    D=reshape(kdata,nx*nz*ntviews,nc);
-    [U,S,V]=svd(D,'econ');
-    kdata=single(reshape(D*V(:,1:pars.ncc),nx,ntviews,nz,pars.ncc));
-    % save Data/kdata_Unstreaking_CoilCompression.mat kdata
-    
-    % Free up some memory
-    clear D U S V
+    kdata = coilCompress(kdata, pars.ncc);
     
     disp('...done.');
-    
-    % Permute dimensions back to default [nx,nc,ntviews,nz]
-    kdata = permute(kdata, [1,4,2,3]);    
 end
 
 
@@ -233,17 +236,43 @@ end
 if pars.doDicomWrite
     switch pars.dicomWriteMethod
         case 0 % Even stupider: use NIFTI
-            % Create 4D NIFTI structure
-            nii = make_nii(out_img, voxSize);          % Uses NIFTI Toolbox by Jimmy Shen
-            % Save it
-            fName = sprintf('%s_%02d.nii', fileName);
-            fName = fullfile(out_path, fName);
-            save_nii(nii, fName);                           % Uses NIFTI Toolbox by Jimmy Shen
+            % Calculate voxel size
+            voxSizeX = twix.hdr.Config.ReadFoV / twix.hdr.Config.NImageCols;
+            voxSizeY = twix.hdr.Config.PhaseFoV / twix.hdr.Config.NImageLins;
+            slabThickness = twix.hdr.MeasYaps.sSliceArray.asSlice{1, 1}.dThickness;
+            voxSizeZ = slabThickness / twix.hdr.Config.NImagePar;
+            voxSize = [voxSizeX voxSizeY voxSizeZ];
+            
+            % Create output dir if necessary
+            if ~exist(out_path, 'dir')
+                mkdir(out_path);
+            end
+            
+            if exist('out_griddingXd', 'var')
+                out1 = uint16(abs(out_griddingXd)*(2^12-1));
+                % Create 4D NIFTI structure
+                nii = make_nii(out1, voxSize);          % Uses NIFTI Toolbox by Jimmy Shen
+                % Save it
+                fName = 'griddingXd.nii';
+                fName = fullfile(out_path, fName);
+                save_nii(nii, fName);                   % Uses NIFTI Toolbox by Jimmy Shen
+            end
+            
+            if exist('out_grogXdGrasp', 'var')
+                % Create 4D NIFTI structure
+                out1 = uint16(abs(out_grogXdGrasp)*(2^12-1));
+                % Create 4D NIFTI structure
+                nii = make_nii(out1, voxSize);          % Uses NIFTI Toolbox by Jimmy Shen
+                % Save it
+                fName = 'grogXdGrasp.nii';
+                fName = fullfile(out_path, fName);
+                save_nii(nii, fName);                   % Uses NIFTI Toolbox by Jimmy Shen
+            end
         case 1 % Write dicom files without any tags: these will be added by postproc module
             if ~exist(out_path, 'dir')
                 mkdir(out_path);
             end
-            if exist('out_gridding', 'var')
+            if exist('out_griddingXd', 'var')
                 out1 = uint16(abs(out_griddingXd)*(2^12-1));
                 for i=1:size(out1,4) %time points
                     for j=1:size(out1,3) %slices
