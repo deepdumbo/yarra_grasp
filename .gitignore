@@ -5,6 +5,7 @@
 
 
 #Data
+*.dat
 *.mat
 *.dcm
 *.ima
