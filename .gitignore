@@ -10,8 +10,15 @@
 *.dcm
 *.ima
 *.nii
+*.zip
 /twixdata/
 /yarraout/
+/rawdata/
+
+
+#Stuff that isn't Git repo-proof yet
+/matlabtools/demos/UKW/
+
 
 #MeVisLab
 *.mlab.auto
