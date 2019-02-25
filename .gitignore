@@ -16,8 +16,8 @@
 /rawdata/
 
 
-#Stuff that isn't Git repo-proof yet
-/matlabtools/demos/UKW/
+#Private stuff: to be kept out of this Git repo
+/matlabtools/private/
 
 
 #MeVisLab
