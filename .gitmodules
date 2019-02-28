@@ -4,3 +4,6 @@
 [submodule "matlabtools/toolboxes/NYU"]
 	path = matlabtools/toolboxes/NYU
 	url = file://G:/Projects/Software/NYU
+[submodule "matlabtools/toolboxes/Nifti_toolbox"]
+	path = matlabtools/toolboxes/Nifti_toolbox
+	url = file://G:/Projects/Software/Nifti_toolbox
