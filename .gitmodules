@@ -1,3 +1,6 @@
 [submodule "mapVBVD"]
 	path = matlabtools/toolboxes/mapVBVD
 	url = file://G:/Projects/Software/mapVBVD
+[submodule "matlabtools/toolboxes/NYU"]
+	path = matlabtools/toolboxes/NYU
+	url = file://G:/Projects/Software/NYU
