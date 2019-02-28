@@ -16,6 +16,9 @@
 /rawdata/
 
 
+#Submodules (ie to be ignored for this specific repo)
+/matlabtools/mapVBVD/
+
 #Private stuff: to be kept out of this Git repo
 /matlabtools/private/
 

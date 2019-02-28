@@ -1,0 +1,12 @@
+[submodule "mapVBVD"]
+	path = matlabtools/toolboxes/mapVBVD
+	url = file://G:/Projects/Software/mapVBVD
+[submodule "matlabtools/toolboxes/NYU"]
+	path = matlabtools/toolboxes/NYU
+	url = file://G:/Projects/Software/NYU
+[submodule "matlabtools/toolboxes/Nifti_toolbox"]
+	path = matlabtools/toolboxes/Nifti_toolbox
+	url = file://G:/Projects/Software/Nifti_toolbox
+[submodule "matlabtools/toolboxes/MIRT"]
+	path = matlabtools/toolboxes/MIRT
+	url = file://G:/Projects/Software/MIRT
