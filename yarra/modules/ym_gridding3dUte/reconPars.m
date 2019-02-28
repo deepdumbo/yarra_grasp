@@ -84,7 +84,7 @@ classdef reconPars
                     case 'test'
                         % Set parameters:
                         % ...for global settings & flags
-                        pars.bp                     = '/nis_home/mrs/marnix/projects/software/ImageReconstruction';     % base path for all image recon tools
+                        pars.bp                      = '/nis_home/mrs/marnix/projects/software/ImageReconstruction';     % base path for all image recon tools
                         pars.doGpu                   = 0;           % Use GPU where implemented
                         pars.slices                  = 0;           % Select which slice(s) to reconstruct. 0 = all.
                         pars.doCropImg               = 1;           % Crop images to FOV requested by MR operator
@@ -97,18 +97,18 @@ classdef reconPars
                         pars.doCoilCompression       = 0;           % Perform coil compression
                         pars.doGridding              = 1;           % Perform gridding recon
                         pars.doRespResolvedRecon     = 0;           % Perform respiratory motion resolved recon
-                        pars.doImageFileWrite        = 1;           % Write reconstructed image data to disk
+                        pars.doImageFileWrite        = 0;           % Write reconstructed image data to disk
                         
                         % ...for reading raw data
                         pars.doLoadTwixFile          = 1;           % Read file meta data from pre-saved file 'twixData.mat'?
                         pars.doSaveTwixFile          = 0;           % Save a file twixData.mat after reading in raw data
                         pars.twixFilePath            = fullfile(pars.bp,'twixdata');			% Path to Twix data files
                         pars.twixFileName            = 'MINAT37_3dUte.mat';
-                        pars.channels                = 0;           % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
+                        pars.channels                = 1;           % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
                         pars.spokes                  = 0;           % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
                         pars.partitions              = 0;           % Select which partitions to read, for testing purposes/reducing memory load. 0 = all.
                         pars.echoes                  = 0;           % Select which echoes to read, for testing purposes/reducing memory load. 0 = all.
-                        pars.repeats                 = 0;       % Select which repeats to read, for testing purposes/reducing memory load. 0 = all.
+                        pars.repeats                 = 1:10;       % Select which repeats to read, for testing purposes/reducing memory load. 0 = all.
                         pars.removeOS                = 0;           % Remove readout oversampling to reduce memory load
                         
                         % ...for calculating the trajectory
@@ -133,7 +133,7 @@ classdef reconPars
                         % ...for static gridding recon
                         pars.initialPoint           = 8;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter
                         pars.doFermiFilter          = 0;            % Apply a Fermi filter to the reconstruction operator
-                        pars.nIterPcg               = 10;           % number of iterations for PCG algorithm
+                        pars.nIterPcg               = 2;           % number of iterations for PCG algorithm, default 10
                         
                         % ...for respiratory resolved recon
 %                         pars.nresp                  = 1;            % number of respiratory phases

@@ -28,15 +28,15 @@ end
 %% Set initial parameters
 
 % ## Include packages in subfolders
-addpath(fullfile(pars.bp,'matlabtools/demos/UKW/gridding/mapVBVD - new/'));         % for reading TWIX files.
-addpath(fullfile(pars.bp,'matlabtools/toolboxes/UKW'));                             % for UKW-specific tools
+addpath(fullfile(pars.bp,'private/UKW/demos/gridding/mapVBVD - new'));         % for reading TWIX files.
+addpath(fullfile(pars.bp,'private/UKW/tools'));                             % for UKW-specific tools
 
 % addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
-addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti toolbox'));                    % for creating & storing output in NIFTI-format 
-addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
-addpath(fullfile(pars.bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
+addpath(fullfile(pars.bp,'ImageRecon/matlabtools/toolboxes/Nifti_toolbox'));                    % for creating & storing output in NIFTI-format 
+addpath(fullfile(pars.bp,'ImageRecon/matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
+addpath(fullfile(pars.bp,'ImageRecon/matlabtools/tools'));                                      % for home-written helper and recon functions
 
-run (fullfile(pars.bp,'matlabtools/toolboxes/MIRT/setup.m'));
+run (fullfile(pars.bp,'ImageRecon/matlabtools/toolboxes/MIRT/setup.m'));
 
 %% Load data
 
