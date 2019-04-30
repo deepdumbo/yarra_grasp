@@ -17,7 +17,7 @@ classdef reconPars
         doMotionDet             = 1;           % Perform motion detection
         doCoilCompression       = 1;           % Perform coil compression
         doGridding              = 1;           % Perform gridding recon
-        doRespResolvedRecon     = 1;           % Perform respiratory motion resolved recon
+        doRespResolvedGridding  = 1;           % Perform respiratory motion resolved Gridding recon
         doImageFileWrite        = 1;           % Write reconstructed image data to disk
         
         % ...for reading raw data

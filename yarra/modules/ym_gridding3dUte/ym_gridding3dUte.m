@@ -125,7 +125,7 @@ end
 
 %% Perform resp motion resolved gridding reconstruction
 try
-    if pars.doRespResolvedRecon
+    if pars.doRespResolvedGridding
         disp('Performing respiratory motion resolved reconstruction...');
         
         % Get image properties (FOV and matrix size)
@@ -150,7 +150,6 @@ try
 catch eRespGridding
     fprintf(2,'Error during respiratory resolved gridding reconstruction. Message:\n%s',eRespGridding.message);
 end
-
 
 
 %% Writing data to Dicom slices
