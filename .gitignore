@@ -20,7 +20,15 @@
 /matlabtools/mapVBVD/
 
 #Private stuff: to be kept out of this Git repo
+/private/
 /matlabtools/private/
+
+
+#All stuff used & produced within the yarra framework, _except_ the cool modlues we've written!
+/yarra/*
+/yarra/*/
+!/yarra/modules/
+!/yarra/modules_user/
 
 
 #MeVisLab
