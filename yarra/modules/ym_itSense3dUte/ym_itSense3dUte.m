@@ -330,7 +330,7 @@ try
         
         % Save image as .mat-file        
         filename = 'recon_sense_all';
-        save(fullfile(out_path, filename),'out_img','-v7.3');
+        save(fullfile(out_path, filename),'out_img_respSense','-v7.3');
         
         disp('...done.');
     end
