@@ -83,6 +83,39 @@ if pars.doCalcTrajectory
     order(1)    = 1;                        % MCM Only works for the random order provided by UKW!
     traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, pars.protFileName), order);
     disp('...done.');
+    
+    % Get file name for SimulationProtocol (for ramp sampling)
+    % If not explicitly provided, construct it first
+    if isempty(pars.protFileName)
+        
+        % scanner type
+        sysType = strrep(twix.hdr.Dicom.ManufacturersModelName, '_', '');
+        
+        % gradient mode
+        gm = twix.hdr.MeasYaps.sGRADSPEC.ucMode;
+        switch gm
+            case 8
+                gradMode = 'Perf';
+            case 4
+                gradMode = 'Fast';
+            case 2
+                gradMode = 'Normal';
+        end
+        fov = twix.hdr.Config.ReadFoV;
+        baseRes = twix.hdr.Config.BaseResolution;
+        dt = twix.hdr.MeasYaps.sRXSPEC.alDwellTime{1};
+        bw = round(1E9/(dt*baseRes*2));
+        
+        simProtFileName = sprintf('SimulationProtocol_%s_gm%s_fov%d_r%d_bw%d.txt',sysType, gradMode, fov, baseRes, bw);
+        msg = sprintf('No SimulationProtocol file specified, using %s', simProtFileName);
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
+    else
+        simProtFileName = pars.protFileName;
+    end
+        
+    % Calculate trajectory
+%     traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, pars.protFileName), order);
+    traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, simProtFileName), order);
 end
     
 

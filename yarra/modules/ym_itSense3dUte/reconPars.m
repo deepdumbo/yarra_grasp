@@ -129,8 +129,8 @@ classdef reconPars
                         pars.removeOS                = 0;           % Remove readout oversampling to reduce memory load
                         
                         % ...for calculating the trajectory
-                        pars.protFilePath            = './';
-                        pars.protFileName            = '190208_SimulationProtocol.txt';
+                        pars.protFilePath            = './SimulationProtocols';
+                        pars.protFileName            = '';          % Leave empty for automatic generation based on acquisition parameters
                         
                         % ...for motion detection
 %                         pars.filesource              = '/mnt/resfilsp03/data/nis_home/mrs/marnix/projects/software/ImageReconstruction/yarra/modules/ym_gridding3dUte';  %% CHECK
