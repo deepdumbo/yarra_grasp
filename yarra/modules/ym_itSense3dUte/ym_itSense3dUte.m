@@ -12,13 +12,16 @@ if nargin<5
     hostname = getHostName();
     switch hostname
         case 'rdbiomr'
-            disp('Running on rdbiomr, using full data set');
+            msg = ('Running on rdbiomr, using full data set');
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             pars = reconPars('full');
         case 'rdcuda'
-            disp('Running on rdcuda, using reduced data set to save memory');
+            msg = ('Running on rdcuda, using reduced data set to save memory');
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             pars = reconPars('low_mem');
         otherwise
-            disp('Running on an unknown machine, using reduced data set to save memory');
+            msg = ('Running on an unknown machine, using reduced data set to save memory');
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             pars = reconPars('low_mem');
     end
     
@@ -42,7 +45,8 @@ run (fullfile(pars.bp,'ImageRecon/matlabtools/toolboxes/MIRT/setup.m'));
 %% Load data
 
 if pars.doLoadData
-    disp('Loading data...');
+    msg = ('Loading data...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     
     fileName = fullfile(in_path,in_file);
     [twix, rawdata] = loadData(fileName, 'doLoadTwixFile', pars.doLoadTwixFile, ...
@@ -61,12 +65,15 @@ if pars.doLoadData
     % data can be loaded with this same version, but this should be
     % checked.
           
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 %% Trajectory
 if pars.doCalcTrajectory
-    disp('Calculating k-space trajectory...');
+    msg = ('Calculating k-space trajectory...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
+    
     % Get data dimensions
     [nx,~,nspokes] = size(rawdata);
     order       = load(fullfile(pars.orderFilePath, pars.orderFileName));
@@ -92,7 +99,8 @@ if pars.doMotionDet
     fNameBS   = 'UTE_breathingstates';
     save(fullfile(temp_path, fNameBS),'breathStates');
     
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
@@ -100,7 +108,8 @@ end
 % Sort rawdata and k-space trajectory into respiratory motion states
 % determined in previous step
 if pars.doDataSort
-    disp('Performing data sorting...');
+    msg = ('Performing data sorting...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     
     channels = pars.channels;
     if channels == 0
@@ -138,13 +147,15 @@ if pars.doDataSort
     end
     
     
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
 %% Calculate density compensation
 if pars.doDcf
-    disp('Calculating density compensation...');
+    msg = ('Calculating density compensation...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     
     % Get image properties (FOV and matrix size)
     FOVx        = twix.hdr.Config.ReadFoV;
@@ -154,7 +165,9 @@ if pars.doDcf
 %     msize       = size (traj,2); % Should traj be permuted first? This  number should amount to about 249
         
     for rs = 1:pars.nresp        
-        fprintf('... for resp state %d/%d\n', rs, pars.nresp);        
+        msg = sprintf('... for resp state %d/%d\n', rs, pars.nresp);
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
+        
         mask = [];  %MCM: does not seem to be  used in densitycompensation() anyway...
         
         % Select which spokes to use and reshape trajectory as needed
@@ -181,13 +194,15 @@ if pars.doDcf
         
         
     end
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
 %% Calculate coil sensitivity maps
 if pars.doCoilSensitivities
-    disp('Calculating coil sensitivity maps...');
+    msg = ('Calculating coil sensitivity maps...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     
 %     respStates = pars.respState4CoilSens;
     respState4CoilSens = ceil(pars.nresp/2);
@@ -202,31 +217,36 @@ if pars.doCoilSensitivities
         load(fullfile(temp_path, ['w_breathingstate_' num2str(rs)]), 'w');
         
         %Calculate low resolution reconstruction
-        disp('...calculating low res recon...');
+        msg = ('...calculating low res recon...');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         channels = 1:size(rawResp,1);
         reconlowres = lowresrecon(rawResp, trajResp, w, mask, FOVx, FOVz, size_x, size_z, channels , msize);
 
         % Save low resolution reconstruction
-        disp('...saving low res recon...');
+        msg = ('...saving low res recon...');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         fNameLowRes = ['reconLowRes_',num2str(rs)];                         % Why do we need to save this? We're not loading it anywhere... can be removed
         save(fullfile(temp_path, fNameLowRes),'reconlowres','-v7.3');
         
         %Determine coil sensitivities map
-        disp('...calculating coil sensitivities...');
+        msg = ('...calculating coil sensitivities...');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         [~, cmps] = CoilSensitivities(reconlowres);
         fNameCmps = ['cmps_breathingstate_',num2str(rs)];
         save(fullfile(temp_path, fNameCmps),'cmps','-v7.3');
         clear reconlowres;    
     end
     
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
 %% Perform gridding reconstruction
 % try
 %     if pars.doGridding
-%         disp('Performing gridding reconstruction...');
+%         msg = ('Performing gridding reconstruction...');
+%         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 %         
 %         % Get image properties (FOV and matrix size)
 %         imgProperties.FOVx      = twix.hdr.Config.ReadFoV;
@@ -235,18 +255,21 @@ end
 %         imgProperties.size_z    = imgProperties.size_x;
 %         out_img = reconGridding3dUte(rawdata, imgProperties, pars);
 %         
-%         disp('...done.');
+%         msg = ('...done.');
+%         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 %     else
 %         out_img = [];
 %     end
 % catch eGridding
-%     fprintf(2,'Error during gridding reconstruction. Message:\n%s\n',eGridding.message);
+%     msg = sprintf(2,'Error during gridding reconstruction. Message:\n%s\n',eGridding.message);
+%     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 % end
 
 %% Perform resp motion resolved gridding reconstruction
 try
     if pars.doRespResolvedGridding
-        disp('Performing respiratory motion resolved reconstruction...');
+        msg = ('Performing respiratory motion resolved reconstruction...');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         
         % Get image properties (FOV and matrix size)
         imgProperties.FOVx      = twix.hdr.Config.ReadFoV;
@@ -257,22 +280,26 @@ try
         % Reconstruct each motion state
         out_img_respGridding = zeros(imgProperties.size_x, imgProperties.size_x, imgProperties.size_z, pars.nresp);
         for rs = 1:pars.nresp
-            disp(['Reconstructing motion state ', num2str(rs), '/', num2str(pars.nresp)]);
+            msg = (['Reconstructing motion state ', num2str(rs), '/', num2str(pars.nresp)]);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             spokes = find(breathStates(rs,:)>0);
             out_img_respGridding(:,:,:,rs) = reconGridding3dUte(rawdata(:,:,spokes), traj(spokes,:,:), imgProperties, pars);
         end
         
-        disp('...done.');
+        msg = ('...done.');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     end
 catch eRespGridding
-    fprintf(2,'Error during respiratory resolved gridding reconstruction. Message:\n%s\n',eRespGridding.message);
+    msg = sprintf(2,'Error during respiratory resolved gridding reconstruction. Message:\n%s\n',eRespGridding.message);
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
 %% Perform resp motion resolved Iterative Sense reconstruction
 try
     if pars.doRespResolvedItSense
-        disp('Performing respiratory motion resolved Iterative SENSE reconstruction...');
+        msg = ('Performing respiratory motion resolved Iterative SENSE reconstruction...');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         
         % Get image properties (FOV and matrix size)
         imgProperties.FOVx      = twix.hdr.Config.ReadFoV;
@@ -282,40 +309,49 @@ try
         
         
         %load coil sensitivity map
-%         disp ('loading cmps: ATTENTION HARD CODED TO 4!!!!!!!!!')
+%         msg =  ('loading cmps: ATTENTION HARD CODED TO 4!!!!!!!!!')
+%         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         fNameCmps = ['cmps_breathingstate_',num2str(respState4CoilSens),'.mat'];
-        fprintf('...loading coil sensitivity maps from %s\n', fNameCmps);
+        msg = sprintf('...loading coil sensitivity maps from %s\n', fNameCmps);
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         load(fullfile(temp_path, fNameCmps), 'cmps');
         
         for rs = 1:pars.nresp
-            fprintf('... for resp state %d/%d\n', rs, pars.nresp);  
+            msg = sprintf('... for resp state %d/%d\n', rs, pars.nresp);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             
             %load rawdata
             fName = ['rawdata_UTE_breathingstate_' num2str(rs)];
-            fprintf('...loading raw data from %s\n', fName);
+            msg = sprintf('...loading raw data from %s\n', fName);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'rawResp');
             
             %load trajectory
             fName = ['traj_UTE_breathingstate_' num2str(rs)];
-            fprintf('...loading trajectory from %s\n', fName);
+            msg = sprintf('...loading trajectory from %s\n', fName);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'trajResp');
             
             %load density compensation
             fName = ['w_breathingstate_' num2str(rs)];
-            fprintf('...loading density compensation from %s\n', fName);
+            msg = sprintf('...loading density compensation from %s\n', fName);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'w');
             
             %run reconstruction
             nc = size(rawResp,1);
-            fprintf('...starting SENSE recon for motion state %d/%d using %d channels\n', rs, pars.nresp, nc);
+            msg = sprintf('...starting SENSE recon for motion state %d/%d using %d channels\n', rs, pars.nresp, nc);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             b = sense(rawResp, trajResp, w, cmps, imgProperties);  %%GM
-            fprintf('...saving SENSE recon of motion state %d\n', rs);
+            msg = sprintf('...saving SENSE recon of motion state %d\n', rs);
+            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             filename = ['recon_sense_breathingstate_',num2str(rs)];
             save(fullfile(temp_path, filename),'b','-v7.3');            
         end
         
         % Combine motion states
-        fprintf('...combining motion states\n');
+        msg = sprintf('...combining motion states\n');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         size_x = imgProperties.size_x;
         out_img_respSense=zeros(size_x,size_x,size_x,pars.nresp);       % Was 8,256,256,256
         for rs=1:pars.nresp
@@ -332,17 +368,20 @@ try
         filename = 'recon_sense_all';
         save(fullfile(out_path, filename),'out_img_respSense','-v7.3');
         
-        disp('...done.');
+        msg = ('...done.');
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     end
 catch eRespItSense
-    fprintf(2,'Error during respiratory resolved iterative sense reconstruction. Message:\n%s\n',eRespItSense.message);
+    msg = sprintf(2,'Error during respiratory resolved iterative sense reconstruction. Message:\n%s\n',eRespItSense.message);
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 
 %% Writing data to Dicom slices
 try
 if pars.doImageFileWrite
-    disp('Writing images to file(s)...');
+    msg = ('Writing images to file(s)...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     switch pars.imageFileWriteMethod
         case 0 % Use NIFTI: can be used as intermediate step before 
                % conversion to Dicom (e.g. using Mevislab)
@@ -390,10 +429,12 @@ if pars.doImageFileWrite
                 end
             end
     end
-    disp('...done.');
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 catch eImageFileWrite
-    fprintf(2,'Error during image file writing. Message:\n%s',eImageFileWrite.message);
+    msg = sprintf(2,'Error during image file writing. Message:\n%s',eImageFileWrite.message);
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
 

@@ -10,6 +10,8 @@ classdef reconPars
         slices                  = 0;            % Select which slice(s) to reconstruct. 0 = all.
         doCropImg               = 1;            % Crop images to FOV requested by MR operator
         doFigures               = 0;            % Display output in figures
+        logFileName             = 'recon.log';  % Name of log file
+        doShowLogMsg            = 1;            % Show log messages on screen
         
         % ...for selecting which parts of the code to run
         doLoadData              = 1;            % Load data

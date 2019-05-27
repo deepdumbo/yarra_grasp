@@ -33,6 +33,7 @@ if doLoadTwixFile
 		load(fullPath)
     else
         msg = 'No valid file name for Twix data provided: aborting';
+        logRecon(msg, fullfile(temp_path,pars.logFileName, pars.doShowLogMsg));
         error(msg)
     end
 else
