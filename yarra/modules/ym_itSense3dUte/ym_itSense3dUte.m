@@ -76,13 +76,13 @@ if pars.doCalcTrajectory
     
     % Get data dimensions
     [nx,~,nspokes] = size(rawdata);
+    
+    % Get order of spokes
     order       = load(fullfile(pars.orderFilePath, pars.orderFileName));
     fldNames    = fieldnames(order);
     fldName     = fldNames{1};
     order       = order.(fldName);
     order(1)    = 1;                        % MCM Only works for the random order provided by UKW!
-    traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, pars.protFileName), order);
-    disp('...done.');
     
     % Get file name for SimulationProtocol (for ramp sampling)
     % If not explicitly provided, construct it first
@@ -116,12 +116,22 @@ if pars.doCalcTrajectory
     % Calculate trajectory
 %     traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, pars.protFileName), order);
     traj        = traj_3dUteRandom(nx, nspokes, fullfile(pars.protFilePath, simProtFileName), order);
+    
+    % Calculate what initial point should be (find better place for this)
+    if pars.initialPoint == 0
+        pars.initialPoint = ceil(pars.digFilterDelay/dt*1E3);
+        msg = sprintf('Initial Point not explicitly specified, using calculated value %d', pars.initialPoint);
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
+    end
+    msg = ('...done.');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
     
 
 %% Perform motion detection
 if pars.doMotionDet
-    disp('Performing motion detection...');
+    msg = ('Performing motion detection...');
+    logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     
     % The matrix breathStates contains info on which spokes belong to which
     % motion states. Row indices represent motion states, column indices
@@ -219,10 +229,12 @@ if pars.doDcf
         % instead of separated out in different spokes.
         w = densitycompensation(trajTmp, mask, FOVx, FOVz, size_x, size_z, msize, pars.nIterPcg);
         
+        msg = sprintf('... saving dcf of resp state %d/%d\n', rs, pars.nresp);
+        logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         fNameW = ['w_breathingstate_',num2str(rs)];
         save(fullfile(temp_path, fNameW),'w','-v7.3');
         
-        clear kspace4Recon;
+%         clear kspace4Recon;
         clear w;
         
         

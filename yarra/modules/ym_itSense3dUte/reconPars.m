@@ -59,7 +59,9 @@ classdef reconPars
         MinPe4Reco              = 45000; %%%%%%%%%%%%%%%% CHECK: was 45000
         
         % ...for data selection and sorting
-        initialPoint           = 1;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter
+        initialPoint           = 0;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter. 0=autoCalculate based on digFilterDelay
+        digFilterDelay          = 13;           % Duration in us of the initial ADC period during which the digital filter causes instable output. Determines the number of initial points in each FID to be discarded. 
+                                                % Empirically found to be ~13us for PrismaFit.
         doClearRaw              = 1;            % Clear rawdata after data sorting (to save memory)
         
         % ...for density compensation calculation
@@ -151,6 +153,10 @@ classdef reconPars
                         pars.initialPoint           = 8;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter
                         pars.doClearRaw              = 1;            % Clear rawdata after data sorting (to save memory)
                         
+                        pars.initialPoint           = 0;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter. 0=autoCalculate based on digFilterDelay
+                        pars.digFilterDelay          = 13;           % Duration in us of the initial ADC period during which the digital filter causes instable output. Determines the number of initial points in each FID to be discarded. 
+                                                % Empirically found to be ~13us for PrismaFit.
+%                         pars.initialPoint           = 8;            % First point to be used within each spoke: used to eliminate artifacts due to digital filter
                         % ...for density compensation calculation
                         pars.nIterPcg               = 10;           % number of iterations for PCG algorithm, default 10
                         
