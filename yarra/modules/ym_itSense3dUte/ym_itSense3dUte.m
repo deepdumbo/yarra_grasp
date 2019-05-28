@@ -107,7 +107,7 @@ if pars.doCalcTrajectory
         bw = round(1E9/(dt*baseRes*2));
         
         simProtFileName = sprintf('SimulationProtocol_%s_gm%s_fov%d_r%d_bw%d.txt',sysType, gradMode, fov, baseRes, bw);
-        msg = sprintf('No SimulationProtocol file specified, using %s', simProtFileName);
+        msg = sprintf('...no SimulationProtocol file specified, using %s', simProtFileName);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     else
         simProtFileName = pars.protFileName;
@@ -120,7 +120,7 @@ if pars.doCalcTrajectory
     % Calculate what initial point should be (find better place for this)
     if pars.initialPoint == 0
         pars.initialPoint = ceil(pars.digFilterDelay/dt*1E3);
-        msg = sprintf('Initial Point not explicitly specified, using calculated value %d', pars.initialPoint);
+        msg = sprintf('...initial Point not explicitly specified, using calculated value %d', pars.initialPoint);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     end
     msg = ('...done.');
@@ -208,7 +208,7 @@ if pars.doDcf
 %     msize       = size (traj,2); % Should traj be permuted first? This  number should amount to about 249
         
     for rs = 1:pars.nresp        
-        msg = sprintf('... for resp state %d/%d\n', rs, pars.nresp);
+        msg = sprintf('... for resp state %d/%d', rs, pars.nresp);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         
         mask = [];  %MCM: does not seem to be  used in densitycompensation() anyway...
@@ -228,14 +228,16 @@ if pars.doDcf
         % i.e. all points in the trajectory are passed as one long list,
         % instead of separated out in different spokes.
         w = densitycompensation(trajTmp, mask, FOVx, FOVz, size_x, size_z, msize, pars.nIterPcg);
+%         w = ones(size(trajTmp,1),1);
+%         w = magic(3); % for debugging, to see where the crash occurs...
         
-        msg = sprintf('... saving dcf of resp state %d/%d\n', rs, pars.nresp);
+        msg = sprintf('... saving dcf of resp state %d/%d', rs, pars.nresp);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         fNameW = ['w_breathingstate_',num2str(rs)];
         save(fullfile(temp_path, fNameW),'w','-v7.3');
         
 %         clear kspace4Recon;
-        clear w;
+%         clear w;
         
         
     end
