@@ -123,11 +123,11 @@ classdef reconPars
                         pars.doSaveTwixFile          = 0;           % Save a file twixData.mat after reading in raw data
                         pars.twixFilePath            = fullfile(pars.bp,'twixdata');			% Path to Twix data files
                         pars.twixFileName            = 'MINAT46_3dUte.mat';
-                        pars.channels                = 1:3;           % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
+                        pars.channels                = 0;           % Select which coil channels to read, for testing purposes/reducing memory load. 0 = all.
                         pars.spokes                  = 0;           % Select which spokes to read, for testing purposes/reducing memory load. 0 = all.
                         pars.partitions              = 0;           % Select which partitions to read, for testing purposes/reducing memory load. 0 = all.
                         pars.echoes                  = 0;           % Select which echoes to read, for testing purposes/reducing memory load. 0 = all.
-                        pars.repeats                 = 1:30;       % Select which repeats to read, for testing purposes/reducing memory load. 0 = all.
+                        pars.repeats                 = 0;       % Select which repeats to read, for testing purposes/reducing memory load. 0 = all.
                         pars.removeOS                = 0;           % Remove readout oversampling to reduce memory load
                         
                         % ...for calculating the trajectory
@@ -144,7 +144,7 @@ classdef reconPars
                         pars.ncx                     = 3;           % Number of coil elements to combine for resp motion detection
                         
                         % ...for respiratory binning
-                        pars.nresp                   = 2;           % Number of respiratory states
+                        pars.nresp                   = 4;           % Number of respiratory states
                         pars.MinPe4Reco              = 0;       % Minimum number of spokes per respiratory state, was 12500
 %                         pars.MinPe4Reco              = 50000;       % Minimum number of spokes per respiratory state, was 12500
 %                         pars.MinPe4Reco              = 2000*max(pars.repeats)/pars.nresp;
@@ -157,7 +157,7 @@ classdef reconPars
 %                         pars.doClearRaw              = 1;            % Clear rawdata after data sorting (to save memory)
 %                         
                         % ...for density compensation calculation
-                        pars.nIterPcg               = 2;           % number of iterations for PCG algorithm, default 10
+                        pars.nIterPcg               = 10;           % number of iterations for PCG algorithm, default 10
                         
                         % ...for coil compression
                         pars.ncc                    = 10;            % Select to how many coil channels the data should be compressed
