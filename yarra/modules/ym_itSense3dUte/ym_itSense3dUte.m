@@ -119,6 +119,7 @@ if pars.doCalcTrajectory
     
     % Calculate what initial point should be (find better place for this)
     if pars.initialPoint == 0
+        dt = twix.hdr.MeasYaps.sRXSPEC.alDwellTime{1};                      % TODO: This is double now, find better place?
         pars.initialPoint = ceil(pars.digFilterDelay/dt*1E3);
         msg = sprintf('...initial Point not explicitly specified, using calculated value %d', pars.initialPoint);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
