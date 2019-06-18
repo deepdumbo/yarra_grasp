@@ -77,6 +77,7 @@ end
 % Get the k-space data. 
 if doUnsorted
     rawdata = twix.image.readTW(length(spokes)*length(repeats));
+    rawdata = squeeze(rawdata(:,channels,:));
 else
     % Data comes in as [samples,channels,spokes,partitions,~,~,~,echoes,repeats]
     rawdata = squeeze(twix.image(:,channels,spokes,partitions,:,:,:,echoes,repeats));
