@@ -13,7 +13,8 @@ if ispc
 elseif isunix
     % We're on Unix/Linux
     os = 'Linux';
-    [~, hostname] = system('uname -n');
+%     [~, hostname] = system('uname -n');
+    [~, hostname] = system('hostname');
     hostname = hostname(1:end-1);
 else
     % Not implemented for anything else than Win or Ux

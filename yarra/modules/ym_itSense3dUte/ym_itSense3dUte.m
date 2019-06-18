@@ -119,6 +119,7 @@ if pars.doCalcTrajectory
     
     % Calculate what initial point should be (find better place for this)
     if pars.initialPoint == 0
+        dt = twix.hdr.MeasYaps.sRXSPEC.alDwellTime{1};                      % TODO: This is double now, find better place?
         pars.initialPoint = ceil(pars.digFilterDelay/dt*1E3);
         msg = sprintf('...initial Point not explicitly specified, using calculated value %d', pars.initialPoint);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
@@ -308,7 +309,7 @@ end
 %         out_img = [];
 %     end
 % catch eGridding
-%     msg = sprintf(2,'Error during gridding reconstruction. Message:\n%s\n',eGridding.message);
+%     msg = sprintf('Error during gridding reconstruction. Message:\n%s\n',eGridding.message);
 %     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 % end
 
@@ -337,7 +338,7 @@ try
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     end
 catch eRespGridding
-    msg = sprintf(2,'Error during respiratory resolved gridding reconstruction. Message:\n%s\n',eRespGridding.message);
+    msg = sprintf('Error during respiratory resolved gridding reconstruction. Message:\n%s\n',eRespGridding.message);
     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
@@ -359,45 +360,45 @@ try
 %         msg =  ('loading cmps: ATTENTION HARD CODED TO 4!!!!!!!!!')
 %         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         fNameCmps = ['cmps_breathingstate_',num2str(respState4CoilSens),'.mat'];
-        msg = sprintf('...loading coil sensitivity maps from %s\n', fNameCmps);
+        msg = sprintf('...loading coil sensitivity maps from %s', fNameCmps);
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         load(fullfile(temp_path, fNameCmps), 'cmps');
         
         for rs = 1:pars.nresp
-            msg = sprintf('... for resp state %d/%d\n', rs, pars.nresp);
+            msg = sprintf('... for resp state %d/%d', rs, pars.nresp);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             
             %load rawdata
             fName = ['rawdata_UTE_breathingstate_' num2str(rs)];
-            msg = sprintf('...loading raw data from %s\n', fName);
+            msg = sprintf('...loading raw data from %s', fName);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'rawResp');
             
             %load trajectory
             fName = ['traj_UTE_breathingstate_' num2str(rs)];
-            msg = sprintf('...loading trajectory from %s\n', fName);
+            msg = sprintf('...loading trajectory from %s', fName);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'trajResp');
             
             %load density compensation
             fName = ['w_breathingstate_' num2str(rs)];
-            msg = sprintf('...loading density compensation from %s\n', fName);
+            msg = sprintf('...loading density compensation from %s', fName);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             load(fullfile(temp_path, fName), 'w');
             
             %run reconstruction
             nc = size(rawResp,1);
-            msg = sprintf('...starting SENSE recon for motion state %d/%d using %d channels\n', rs, pars.nresp, nc);
+            msg = sprintf('...starting SENSE recon for motion state %d/%d using %d channels', rs, pars.nresp, nc);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             b = sense(rawResp, trajResp, w, cmps, imgProperties);  %%GM
-            msg = sprintf('...saving SENSE recon of motion state %d\n', rs);
+            msg = sprintf('...saving SENSE recon of motion state %d', rs);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             filename = ['recon_sense_breathingstate_',num2str(rs)];
             save(fullfile(temp_path, filename),'b','-v7.3');            
         end
         
         % Combine motion states
-        msg = sprintf('...combining motion states\n');
+        msg = sprintf('...combining motion states');
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
         size_x = imgProperties.size_x;
         out_img_respSense=zeros(size_x,size_x,size_x,pars.nresp);       % Was 8,256,256,256
@@ -419,7 +420,7 @@ try
         logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
     end
 catch eRespItSense
-    msg = sprintf(2,'Error during respiratory resolved iterative sense reconstruction. Message:\n%s\n',eRespItSense.message);
+    msg = sprintf('Error during respiratory resolved iterative sense reconstruction. Message:\n%s\n',eRespItSense.message);
     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
@@ -480,7 +481,7 @@ if pars.doImageFileWrite
     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 catch eImageFileWrite
-    msg = sprintf(2,'Error during image file writing. Message:\n%s',eImageFileWrite.message);
+    msg = sprintf('Error during image file writing. Message:\n%s',eImageFileWrite.message);
     logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
 end
 
