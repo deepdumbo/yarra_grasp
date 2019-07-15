@@ -9,20 +9,21 @@ function [out_img_respSense, out_img_respGridding] = ym_itSense3dUte(in_path, in
 %% Parse inputs
 clc
 if nargin<5
-    hostname = getHostName();
+    [~, hostname] = system('hostname')
+%     pars = reconPars('test');
     switch hostname
+        case 'umcradmrrecop01'
+            disp('Running on umcradmrrecop01, using full data set');
+            pars = reconPars('full');
         case 'rdbiomr'
-            msg = ('Running on rdbiomr, using full data set');
-            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
+            disp('Running on rdbiomr, using full data set');
             pars = reconPars('full');
         case 'rdcuda'
-            msg = ('Running on rdcuda, using reduced data set to save memory');
-            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
-            pars = reconPars('low_mem');
+            disp('Running on rdcuda, using reduced data set to save memory');
+            pars = reconPars('full');
         otherwise
-            msg = ('Running on an unknown machine, using reduced data set to save memory');
-            logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
-            pars = reconPars('low_mem');
+            disp('Running on an unknown machine, using reduced data set to save memory');
+            pars = reconPars('full');
     end
     
 end
@@ -34,13 +35,10 @@ end
 addpath(fullfile(pars.bp,'private/UKW/demos/gridding/mapVBVD - new'));          % for reading TWIX files.
 addpath(fullfile(pars.bp,'private/UKW/tools'));                                 % for UKW-specific tools
 addpath(fullfile(pars.bp,'private/UKW/operators'));                             % for UKW recon operators
+addpath(fullfile(pars.bp,'ReconTools/matlabtools/toolboxes/Nifti_toolbox'));                    % for creating & storing output in NIFTI-format 
+addpath(fullfile(pars.bp,'ReconTools/matlabtools/tools'));                      % for home-written helper and recon functions
 
-% addpath(fullfile(pars.bp,'toolboxes/NYU/imagescn_R2008a/'));             % for plotting images
-addpath(fullfile(pars.bp,'ImageRecon/matlabtools/toolboxes/Nifti_toolbox'));                    % for creating & storing output in NIFTI-format 
-% addpath(fullfile(pars.bp,'ImageRecon/matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
-addpath(fullfile(pars.bp,'ImageRecon/matlabtools/tools'));                      % for home-written helper and recon functions
-
-run (fullfile(pars.bp,'ImageRecon/matlabtools/toolboxes/MIRT/setup.m'));
+run (fullfile(pars.bp,'ReconTools/matlabtools/toolboxes/MIRT/setup.m'));
 
 %% Load data
 
@@ -391,6 +389,9 @@ try
             msg = sprintf('...starting SENSE recon for motion state %d/%d using %d channels', rs, pars.nresp, nc);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             b = sense(rawResp, trajResp, w, cmps, imgProperties);  %%GM
+            if pars.doFlip
+                b = flip(b,1);
+            end
             msg = sprintf('...saving SENSE recon of motion state %d', rs);
             logRecon(msg, fullfile(temp_path,pars.logFileName), pars.doShowLogMsg);
             filename = ['recon_sense_breathingstate_',num2str(rs)];
@@ -470,7 +471,7 @@ if pars.doImageFileWrite
                     out1 = uint16(abs(out_img_respSense)*(2^12-1));
                     for i=1:size(out1,4) %time points
                         for j=1:size(out1,3) %slices
-                            fName = sprintf('sense_slice%d.%d.dcm',j,i);
+                            fName = sprintf('sense_tp%d.slice%d.dcm',i,j);
                             dicomwrite(out1(:,:,j,i), [out_path, '/', fName], 'MultiframeSingleFile', false);
                         end
                     end
