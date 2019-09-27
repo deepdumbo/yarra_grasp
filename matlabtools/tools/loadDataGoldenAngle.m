@@ -32,6 +32,7 @@ if doLoadTwixFile
         error(msg)
     end
 else
+    disp(fileName)
     twix = mapVBVD(fileName);
     
     % For VD software, the TWIX file may contain adjustment data. We only want

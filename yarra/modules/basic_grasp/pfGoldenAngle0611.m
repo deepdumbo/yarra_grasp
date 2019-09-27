@@ -22,7 +22,6 @@ function raw_out = pfGoldenAngle0611(raw_in, nparPF)
 
 % Get data dimensions
 [nx,~,~,npar,~] = size(raw_in);
-size(raw_in)
 if npar ~= nparPF
     % Permute dimensions:
     % from [nx,nc,ntviews,npar,...]

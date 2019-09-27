@@ -11,7 +11,10 @@ function [out_grogXdGrasp, out_griddingXd] = ym_grogXdGrasp_Lung(in_path, in_fil
 
 
 %% Parse inputs
-clc
+
+
+addpath('~/project/ReconTools/matlabtools/tools/'); 
+
 if nargin<5
     hostname = getHostName();
     switch hostname
@@ -28,6 +31,7 @@ if nargin<5
     
 end
 
+pars.bp = '~/project/ReconTools/'
 
 %% Set initial parameters
 
@@ -45,9 +49,10 @@ addpath(fullfile(pars.bp,'matlabtools/toolboxes/NYU/MotionDetection/'));        
 % addpath(fullfile(pars.bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/'));          % for plotting images
 % addpath(fullfile(pars.bp,'matlabtools/demos/NYU/RACER-GRASP_GROG-GRASP/utils'));     % for GROG-specific tools
 % addpath('../NYU Demos/Demo_RACER-GRASP_GROG-GRASP/nufft_files');            	% for GROG-specific tools
-addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti toolbox'));               % for creating & storing output in NIFTI-format 
+addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti_toolbox'));               % for creating & storing output in NIFTI-format 
 addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
 addpath(fullfile(pars.bp,'matlabtools/tools'));                                      % for home-written helper and recon functions
+
 
 
 
@@ -76,13 +81,18 @@ if pars.doLoadData
     disp('...done.');
 end
 
+%ivom: select one echo for debug. 
+rawdata = squeeze(rawdata(:, :, :, :, 1));
+
+fprintf('size rawdata is:');
+disp(size(rawdata));
 
 %% Partial Fourier
 if pars.doPartialFourier
     disp('Doing Partial Fourier...');
     
     % Multi-echo partial fourier processing in 2D
-%     rawdata = pfGoldenAngleMe(rawdata, twix);
+    %rawdata = pfGoldenAngleMe(rawdata, twix);
     
     nparPF = twix.hdr.Meas.Partitions;
     rawdata = pfGoldenAngle(rawdata, nparPF);
@@ -141,7 +151,6 @@ if pars.doFtz
     disp('...done.');
 end
 
-
 %% Slice oversampling
 % Remove slices that were inside the slice-oversampled region
 if pars.doSliceOversampling
@@ -162,15 +171,13 @@ if pars.doSliceOversampling
     disp('...done.');
 end
 
-
-
 %% Coil unstreaking
 % Adapted from NYU Demo Demo1_Unstreaking.m
 % Should be performed before coil compression
 if pars.doUnstreaking
     disp('Performing Coil Unstreaking...');
     
-    kdata = coilUnstreak(kdata, pars.n1, pars.n2, pars.doFigs);
+    kdata = coilUnstreak(kdata, pars.n1, pars.n2, pars.doFigures);
         
     disp('...done.');
 end
@@ -207,6 +214,8 @@ if pars.doXdGridding
     disp('...done.');
 end
 
+
+slices = 18;
 
 %% Perform GROG XD-GRASP Reconstruction
 % Adapted from Demo4_Reconstruction.m from RACER-GRASP_GROG-GRASP demo
@@ -266,11 +275,11 @@ if pars.doDicomWrite
                 % Save it
                 fName = 'grogXdGrasp.nii';
                 fName = fullfile(out_path, fName);
-                save_nii(nii, fName);                   % Uses NIFTI Toolbox by Jimmy Shen
+                save_nii(nii, fName);           l        % Uses NIFTI Toolbox by Jimmy Shen
             end
         case 1 % Write dicom files without any tags: these will be added by postproc module
             if ~exist(out_path, 'dir')
-                mkdir(out_path);
+                mlsllskdir(out_path);
             end
             if exist('out_griddingXd', 'var')
                 out1 = uint16(abs(out_griddingXd)*(2^12-1));

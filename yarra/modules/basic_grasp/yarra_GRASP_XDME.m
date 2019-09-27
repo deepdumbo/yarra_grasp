@@ -1,6 +1,16 @@
-function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_file)
+function [data] = yarra_GRASP_ME(work_path, meas_file, output_path, ~, mode_file, i_echo, echoparams)
 
-    version='0.00611';
+% RECONSTRUCT ONE ECHO. SELECT ECHO THROUGH INPUT PARAMETERS!
+% WATERFIETS: ALSO CORRECT FOR MOTION WITH XD-GRASP.
+
+%ivom: select the echo index to reconstruct. Echoes sorted in
+%increasing time!
+    
+    traj_flip    = [0 0];
+    blipAngleDeg = 2;
+    nresp        = 4;
+  
+    version='0.00611_S0L3R0';
 
     fprintf('\n');
     fprintf('Yarra Basic GRASP Recon %s\n',version);
@@ -21,10 +31,9 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
         pct_available=false;
     end    
     
-    reconStart=tic;    
+    %reconStart=tic;    
     addpath(genpath('code'));
 
-  
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Reconstruction parameters
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
@@ -35,12 +44,13 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     recoparams.inner_iterations    = 5;
     recoparams.outer_iterations    = 3;
     recoparams.tv_lambda           = 0.02;
-    recoparams.spokes_per_frame    = 144;
+    recoparams.spokes_per_frame    = 73%144;
     recoparams.sliceFrom           = 0;
     recoparams.sliceTo             = 0;    
     recoparams.cores_to_use        = feature('numcores');
     recoparams.apply_kx_filter     = true;
     recoparams.compressed_channels = 10;
+    %recoparams.nresp               = 4;
 
     % Read the module settings from the mode file
     settings=yarra_read_mode_section(mode_file, 'GRASP');
@@ -87,38 +97,66 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     nparPF       =twixfile.hdr.Meas.Partitions; %partitions with OS with PF
     TA           =twixfile.hdr.Meas.lTotalScanTimeSec;
     
-       
     disp('Sorting data...');
     
     % Get the kspace data and convert to double now to avoid repetitive
     % recasting into at later points
     kdata = double(twixfile.image{''});
     
+    [nx, nc, ntviews, ~, ne] = size(kdata);
     %kdata as [nx,nc,ntviews,npar]
-    kdata = squeeze(kdata(:, :, :, :, 1));
     
+    
+    if i_echo > ne
+        error('Echo index exceeds the number of echoes of dataset.');
+    end
+    
+    kdata = squeeze(kdata(:, :, :, :, i_echo));
+    %Res_Signal = motionDetGrasp2(kdata, twixfile);
+    Res_Signal = motionDetGrasp(kdata, 0, 0);
+
     % Free up the data again
     clear twixfile;    
 
-    %kdata=permute(kdata,[1 3 4 2]);
-    %kdata=zerofill_Kz(kdata,3,partitions,imagesPerSlab,centerpar,recoparams.apply_kx_filter);
-    
-    disp('Finished reading data');          
-    %disp('Performing Partial Fourier...');
-    %kdata = pfGoldenAngle0611(kdata, nparPF);
- 
-    disp('Zero-padding...')
-    kdata = permute(kdata, [1 3 4 2]);
+
+    kdata=permute(kdata,[1 3 4 2]);
     kdata=zerofill_Kz(kdata,3,partitions,imagesPerSlab,centerpar,recoparams.apply_kx_filter);
 
+    
+    disp('Finished reading data');          
+    disp('Performing Partial Fourier...');
+    %input as: [nx, nc, ntviews, nz] 
+    %kdata = pfGoldenAngle0611(kdata, nparPF);
+    %output same as input: permute. 
+ 
+    Traj_ME = Trajectory_GoldenAngle_ME(ntviews, nx, ne, blipAngleDeg, 'flip', traj_flip, 'gradcorr', 1); 
+    Traj = Traj_ME(:, :, i_echo);
+    clear Traj_ME
+    %disp('Zero-padding...')
+    %kdata = permute(kdata, [1 3 4 2]);
+    %kdata=zerofill_Kz(kdata,3,partitions,imagesPerSlab,centerpar,recoparams.apply_kx_filter);
+
     [nx,ntviews,nz,nc]=size(kdata);
-    [Traj,DensityComp]=Trajectory_GoldenAngle(ntviews,nx);
+    
+    DensityComp = abs(Traj);
+    DensityComp = DensityComp/(max(DensityComp(:)));
+    
+    %[Traj,DensityComp]=Trajectory_GoldenAngle(ntviews,nx);
 
     % FFT along the kz dimension
     kdata1=fftshift(ifft(fftshift(kdata,3),[],3),3); 
-   
-    nline=recoparams.spokes_per_frame;  % Number of spokes per frame
-    nt=floor(ntviews/nline);            % Number of frames   
+    clear kdata
+    
+    figure()
+    imagesc(squeeze(abs(kdata1(256, :, :, 18)))');
+    colormap('gray');
+    title('Projection before coil compression')
+    hold on
+    plot(Res_Signal*40+40, 'r');
+    
+    %nline=recoparams.spokes_per_frame;  % Number of spokes per frame
+    nline=floor(ntviews/nresp);            % Number of frames   
+    nt = nresp;
     
     disp(' ');
     disp('== Information ================================');
@@ -141,7 +179,13 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
         kdata1=reshape(D*V(:,1:ncc),nx,ntviews,nz,ncc);
         [nx,ntviews,nz,nc]=size(kdata1);
     end
-    
+   
+    figure()
+    imagesc(squeeze(abs(kdata1(256, :, :, 5)))');
+    colormap('gray');
+    title('Projection after coil compression')
+    hold on
+    plot(Res_Signal*40+40, 'r');
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Coil sensitivity calculation
@@ -152,11 +196,20 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     b1=adapt_array_3d(ref);
     b1=b1/max(abs(b1(:)));
            
+    %IVOM%IVOM%IVOM%IVOM
+    % SORT FOR MOTION CORR. 
+    %IVOM%IVOMAATMAN$IVOM
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    [~, index] = sort(Res_Signal, 'descend'); 
+    Traj = Traj(:, index);
+    DensityComp = DensityComp(:, index);
+    kdata1 = kdata1(:, index, :, :); 
+    
+% % % %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % GRASP reconstruction
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
     disp('Preparing GRASP...');
+    fprintf('correct version...');
     
     % Start the thread pool for parallel processing
     if pct_available
@@ -171,6 +224,8 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
         Traj_nt(:,:,ii)=Traj(:,(ii-1)*nline+1:ii*nline,:);
         DensityComp_nt(:,:,ii)=DensityComp(:,(ii-1)*nline+1:ii*nline);
     end
+    
+    clear kdata1
     
     % Apply the density compensation function to the k-space data
     kdata_nt=kdata_nt.*repmat(sqrt(permute(DensityComp_nt,[1 2 4,5,3])),[1,1,nz,nc,1]);
@@ -192,7 +247,7 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     % Calculate gridding solutions as initial guess and to properly scale 
     % the TV weight
     initialEstimate=zeros(nx/2,nx/2,nz,nt);
-    parfor zz=1:nz 
+    parfor zz = 1:nz 
         tempparam=[];
         tempparam.y=double(kdata_nt(:,:,zz,:,:));
         tempparam.SG=1;
@@ -208,9 +263,9 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     outerIterations=recoparams.outer_iterations;    
     
     disp('Running GRASP reconstruction now...');
-    
-    fullstart=tic;
-    parfor zz=minSlice:maxSlice % loop through all slices    
+        
+    %fullstart=tic;
+    parfor zz = minSlice:maxSlice %zz = minSlice:maxSlice % loop through all slices    
         fprintf('Calculating slice %d...\n', zz);
         param=[];
         
@@ -244,10 +299,9 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     % Normalize the result
     data=data/max(data(:));
 
-    disp('Total duration: ');
-    toc(fullstart);
+    %toc(fullstart);
 
-    % Shutdown the thread pool
+    %Shutdown the thread pool
     if pct_available
         delete(gcp('nocreate'));
     end    
@@ -256,11 +310,11 @@ function [data] = yarra_GRASP0611(work_path, meas_file, output_path, ~, mode_fil
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Storage of images
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-    disp('Saving the results...');
+    %disp('Saving the results...');
     
-    data=flip(data,3); % Flip slice order
-    yarra_dicom_timeseries(data,output_path);
+    %data=flip(data,3); % Flip slice order
+    %yarra_dicom_timeseries(data,output_path);
 
-    disp('Complete duration: ');
-    toc(reconStart);
+    %disp('Complete duration: ');
+    %toc(reconStart);
     
