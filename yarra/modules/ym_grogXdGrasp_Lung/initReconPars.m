@@ -11,7 +11,7 @@ pars.bp                      = '../../';    % base path for all image recon tool
 pars.doGpu                   = 0;           % Use GPU where implemented
 pars.slices                  = 0;           % Select which slice(s) to reconstruct. 0 = all.
 pars.doCropImg               = 1;           % Crop images to FOV requested by MR operator
-pars.doFigures               = 0;           % Display output in figures
+pars.doFigures               = 1;           % Display output in figures
 
 % ...for selecting which parts of the code to run
 pars.doLoadData              = 1;           % Load data
@@ -76,7 +76,7 @@ switch reconType
         % ...for global settings & flags
         pars.bp                      = '/nis_home/mrs/marnix/projects/software/ImageReconstruction';     % base path for all image recon tools
         pars.doGpu                   = 0;           % Use GPU where implemented
-        pars.slices                  = 30:31;           % Select which slice(s) to reconstruct. 0 = all.
+        pars.slices                  = 0;           % Select which slice(s) to reconstruct. 0 = all.
         pars.doCropImg               = 1;           % Crop images to FOV requested by MR operator
         pars.doFigures               = 1;           % Display output in figures
         

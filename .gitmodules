@@ -7,6 +7,3 @@
 [submodule "matlabtools/toolboxes/Nifti_toolbox"]
 	path = matlabtools/toolboxes/Nifti_toolbox
 	url = https://github.com/marnixmaas/tbx_Nifti_toolbox
-[submodule "matlabtools/toolboxes/MIRT"]
-	path = matlabtools/toolboxes/MIRT
-	url = https://github.com/marnixmaas/tbx_MIRT

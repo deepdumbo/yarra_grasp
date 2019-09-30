@@ -3,6 +3,9 @@ function [Gx, Gy] = get_Gx_Gy(kSpace_in, Traj);
 % For current version, kSpace_in should have 4 dimention. This excludes
 % slices, says only allows input one slice at once. kx-ky should have 3
 % dimentions. 
+% ivom: In Demo4, [nx,ntviews,[1],nc]=size(kSpace_in) before calling  
+% ivom: GROG.get_Gx_Gy(kSpace_in, Traj).
+
 kx=real(Traj);
 ky=imag(Traj);
 
@@ -10,6 +13,8 @@ ky=imag(Traj);
 kSpace_in = reshape(kSpace_in,[sx,nor*nof,nc]);
 kx = reshape(kx,[sx,nor*nof]);
 ky = reshape(ky,[sx,nor*nof]);
+
+size(kSpace_in)
 
 logG = zeros(nc,nc,nor*nof);
 

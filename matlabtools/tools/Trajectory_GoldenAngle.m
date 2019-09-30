@@ -15,6 +15,8 @@
 % (ie gradcorr = 1)
 %
 % USE: Traj=Trajectory_GoldenAngle(ntviews, nx, normalize=1, flip=[0 0], gradcorr=1)
+% ivom: I think normalization is incorrect for GROG! Not done in demo, and
+% wrong results in my cases. 
 
 function Traj=Trajectory_GoldenAngle(ntviews, nx, normalize, flip, gradcorr)
 if nargin<5
@@ -30,7 +32,7 @@ end
 Gn = (1 + sqrt(5))/2;
 
 % Calculate angles
-% radian = mod((0:(ntviews-1))*a*pi/180 + pi/2,2*pi);     % Added pi/2
+% radian = mod((0:(ntviews-1))*a*pi/180 + pi/2,                                                                                                                                                                                                                                                                                                                                      2*pi);     % Added pi/2
 phi = mod( pi/2 + (0:(ntviews-1))*pi/Gn, 2*pi);         % Angles in radians
 
 % Calculate coordinates along each spoke
