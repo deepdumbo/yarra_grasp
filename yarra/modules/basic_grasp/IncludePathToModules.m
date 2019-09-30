@@ -13,4 +13,5 @@ function IncludePathToModules()
     addpath(fullfile(pars.bp,'matlabtools/toolboxes/Nifti_toolbox'));                    % for creating & storing output in NIFTI-format 
     addpath(fullfile(pars.bp,'matlabtools/operators'));                                  % for operators like NUFFT, Total Variation, GROG, etc
     addpath(fullfile(pars.bp,'matlabtools/tools'));    
+    addpath(fullfile(pars.bp,'matlabtools/tools/PlotTools'));
 end
